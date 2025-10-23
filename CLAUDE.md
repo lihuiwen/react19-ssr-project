@@ -91,6 +91,31 @@ The framework uses a **dual-server architecture** for Hot Module Replacement:
 
 See `HMR.md` for detailed documentation on the dual-server HMR setup.
 
+### Partial Pre-rendering (PPR) Architecture (Phase 10.5)
+
+The framework implements **React 19.2's two-stage rendering** for optimal performance:
+
+**Stage 1 - Prerender**:
+- Generate static HTML shell using `prerender()` or `prerenderToNodeStream()`
+- Identify Suspense boundaries that require data fetching
+- Return `postponed` state (serializable object) for later resumption
+- Cache postponed state in Redis/Filesystem/Memory
+
+**Stage 2 - Resume**:
+- **SSR Mode**: Use `resume()` or `resumeToPipeableStream()` for streaming dynamic content
+- **SSG Mode**: Use `resumeAndPrerender()` or `resumeAndPrerenderToNodeStream()` for complete static HTML
+
+**Key Components**:
+- `src/runtime/server/streaming/prerender.ts` - Unified prerender interface
+- `src/runtime/server/streaming/resume.ts` - Dual-mode resume (SSR/SSG)
+- `src/runtime/server/streaming/ppr-cache.ts` - Postponed state caching
+- `src/build/ppr-analyzer.ts` - Build-time strategy detection
+
+**Performance Benefits**:
+- TTFB < 50ms (static shell from cache/CDN)
+- LCP < 1s (instant visible content)
+- Progressive enhancement (dynamic content streams in)
+
 ## Development Phases
 
 The implementation follows these key milestones (from `ROADMAP.md`):
@@ -109,7 +134,8 @@ The implementation follows these key milestones (from `ROADMAP.md`):
 | 7 | 23-24 | Middleware system |
 | 8 | 25-27 | Error handling + DevTools |
 | 9 | 28-30 | CLI tools |
-| 10 | 31-35 | Performance optimization + docs |
+| 10 | 31-32 | Basic performance optimization + docs |
+| 10.5 | 33-35 | **Partial Pre-rendering (PPR)** - React 19.2 |
 | 11 | 36-40 | i18n (optional) |
 
 ### Key Milestones
@@ -120,7 +146,8 @@ The implementation follows these key milestones (from `ROADMAP.md`):
 - **Day 17**: 流式 SSR + 数据获取 **(核心 MVP)**
 - **Day 24**: 完整开发体验 (HMR + 中间件)
 - **Day 30**: 生产可用 (CLI + 错误处理)
-- **Day 35**: 性能优化与文档
+- **Day 32**: 基础性能优化与文档
+- **Day 35**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 40**: 国际化支持，可发布
 
 **Current Phase**: Phase 0 - Project initialization
@@ -193,6 +220,46 @@ export const middleware: Middleware[] = [
 ]
 ```
 
+### Partial Pre-rendering (PPR) Configuration (Phase 10.5)
+
+PPR can be configured at three levels:
+
+**1. Global Configuration (`app.config.ts`)**:
+```typescript
+export default {
+  server: {
+    ppr: {
+      enabled: true,
+      defaultStrategy: 'auto', // 'static' | 'dynamic' | 'hybrid' | 'auto'
+      timeout: 5000,
+      cache: {
+        type: 'redis', // 'memory' | 'redis' | 'filesystem'
+        ttl: 3600,
+      }
+    }
+  }
+}
+```
+
+**2. Route-Level Configuration**:
+```typescript
+// pages/blog/[id].tsx
+export const config = {
+  ppr: {
+    enabled: true,
+    strategy: 'hybrid',
+    timeout: 3000,
+    cache: { enabled: true, ttl: 3600 }
+  }
+}
+```
+
+**3. Build-Time Detection**:
+The framework automatically analyzes components to detect:
+- Suspense boundaries
+- Data fetching (use() Hook)
+- Optimal rendering strategy (static/dynamic/hybrid)
+
 ## Commands
 
 Currently, the project is in Phase 0 (initialization). Once implemented, the following commands will be available:
@@ -234,6 +301,18 @@ pnpm start
 - Clear `require.cache` for server-side modules in SSR server
 - See `HMR.md` for troubleshooting common issues
 
+### When Working with PPR (Phase 10.5+)
+
+- **Never** directly call `prerender()` or `resume()` - always use the unified interfaces in `src/runtime/server/streaming/`
+- **Always** handle `postponed` state serialization carefully - it must be JSON-serializable
+- **Cache strategy**: Use Redis for production, filesystem for development, memory for testing
+- **Timeout handling**: Set appropriate timeouts for prerender (default 5s) and fallback to streaming SSR on timeout
+- **Test both modes**:
+  - SSR mode: `resume()` for dynamic streaming
+  - SSG mode: `resumeAndPrerender()` for build-time static generation
+- **Route configuration**: Define `export const config` in page components to control PPR behavior per route
+- **Performance monitoring**: Track TTFB, FCP, and LCP metrics to validate PPR improvements
+
 ### File Naming Conventions
 
 - **Page components**: `pages/ComponentName.tsx` or `pages/[param].tsx`
@@ -252,6 +331,10 @@ All framework types are in `types/framework.d.ts`:
 - `ApiHandler` - API route handler
 - `StreamRenderOptions` - Streaming options
 - `AppConfig` - Application configuration
+- `PPRConfig` - Partial Pre-rendering configuration (Phase 10.5)
+- `PostponedState` - Postponed state object (Phase 10.5)
+- `PrerenderResult` - Prerender result interface (Phase 10.5)
+- `PPRCache` - Cache interface for postponed states (Phase 10.5)
 
 ## Future: React Server Components (RSC)
 
@@ -264,6 +347,7 @@ The architecture is designed to support RSC upgrade (Phase 12+):
 
 ## Performance Targets
 
+### Traditional SSR (Phase 1-9)
 | Metric | Target | Description |
 |--------|--------|-------------|
 | TTFB | < 200ms | Time to First Byte |
@@ -271,6 +355,15 @@ The architecture is designed to support RSC upgrade (Phase 12+):
 | LCP | < 2.5s | Largest Contentful Paint |
 | TTI | < 3s | Time to Interactive |
 | Hydration | < 500ms | Hydration completion time |
+
+### With PPR Enabled (Phase 10.5+)
+| Metric | Target | Description |
+|--------|--------|-------------|
+| **TTFB** | **< 50ms** | Static shell from cache/CDN |
+| **FCP** | **< 400ms** | Instant visible content |
+| **LCP** | **< 1s** | Core content fully loaded |
+| **TTI** | **< 1.5s** | Interactive significantly faster |
+| Hydration | < 300ms | Selective hydration |
 
 ## Browser & Runtime Support
 

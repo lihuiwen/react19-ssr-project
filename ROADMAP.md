@@ -27,6 +27,7 @@
 MVP 功能:
   - ✅ 流式 SSR 渲染（Suspense Streaming）
   - ✅ 中间件系统
+  - ✅ Partial Pre-rendering（React 19.2 PPR）
 ```
 
 ## 项目结构
@@ -42,7 +43,10 @@ react19-ssr-framework/
 │   │   │   └── streaming/    # 流式渲染适配器
 │   │   │       ├── adapter.ts
 │   │   │       ├── node.ts   # renderToPipeableStream
-│   │   │       └── web.ts    # renderToReadableStream
+│   │   │       ├── web.ts    # renderToReadableStream
+│   │   │       ├── prerender.ts  # PPR 预渲染（Phase 10.5）
+│   │   │       ├── resume.ts     # PPR 恢复渲染（Phase 10.5）
+│   │   │       └── ppr-cache.ts  # PPR 缓存系统（Phase 10.5）
 │   │   ├── client/           # 客户端入口
 │   │   │   ├── hydrate.tsx   # 水合逻辑
 │   │   │   ├── router.tsx    # 客户端路由
@@ -58,7 +62,9 @@ react19-ssr-framework/
 │   │   ├── webpack.dev.ts    # 开发配置
 │   │   ├── dev-server.ts     # 开发服务器(HMR)
 │   │   ├── route-scanner.ts  # 路由扫描器
-│   │   └── api-scanner.ts    # API 路由扫描
+│   │   ├── api-scanner.ts    # API 路由扫描
+│   │   ├── ppr-analyzer.ts   # PPR 策略分析（Phase 10.5）
+│   │   └── static-generator.ts # 构建时静态生成（Phase 10.5）
 │   └── cli/                  # 命令行工具
 │       ├── dev.ts            # npm run dev
 │       ├── build.ts          # npm run build
@@ -107,7 +113,8 @@ react19-ssr-framework/
 ✅ Day 17: 流式 SSR + 数据获取 (核心MVP)
 ✅ Day 24: 完整开发体验 (HMR + 中间件)
 ✅ Day 30: 生产可用 (CLI + 错误处理)
-✅ Day 35: 性能优化与文档
+✅ Day 32: 基础性能优化与文档
+✅ Day 35: PPR 极致性能优化 (TTFB < 50ms)
 ✅ Day 40: 国际化支持，可发布
 ```
 
@@ -656,13 +663,13 @@ export const middleware: Middleware[] = [
 
 ---
 
-## Phase 10: 性能优化与文档 (Day 31-35)
+## Phase 10: 基础性能优化与文档 (Day 31-32)
 
-**目标：性能优化和文档完善**
+**目标：基础性能优化和文档完善**
 
 ### 核心任务
 
-#### 1. 性能优化
+#### 1. 基础性能优化
 - 代码分割（`React.lazy`）
 - 资源预加载（`<link rel="preload">`）
 - 静态资源 CDN
@@ -688,6 +695,471 @@ export const middleware: Middleware[] = [
 ✅ 示例项目可直接运行
 ✅ 部署到 Vercel/Cloudflare 成功
 ```
+
+### 输出物
+
+- 构建优化配置
+- 完整项目文档
+- 3个示例项目
+
+---
+
+## Phase 10.5: Partial Pre-rendering (PPR) 支持 (Day 33-35) ⚠️ 高级特性
+
+**目标：实现 React 19.2 两阶段渲染，极致性能优化**
+
+> 基于 React 19.2 的 `prerender()`, `resume()`, `resumeAndPrerender()` APIs
+
+### 技术背景
+
+React 19.2 引入了 **Partial Pre-rendering (PPR)**，通过两阶段渲染模式实现：
+1. **Stage 1 - prerender()**: 生成静态 HTML 壳子，遇到动态 Suspense 边界时中止，返回 `postponed` 状态
+2. **Stage 2 - resume() / resumeAndPrerender()**:
+   - `resume()` → 恢复为 SSR 流（动态内容）
+   - `resumeAndPrerender()` → 恢复为完整静态 HTML（SSG）
+
+### 核心任务
+
+#### 1. Prerender 预渲染引擎
+
+**实现统一的预渲染接口**：
+
+```typescript
+// src/runtime/server/streaming/prerender.ts
+import { prerender } from 'react-dom/static'
+import { prerenderToNodeStream } from 'react-dom/server.node'
+
+export async function prerenderPage(
+  Component: React.ComponentType,
+  options: PrerenderOptions
+): Promise<PrerenderResult> {
+  const { prelude, postponed } = await (
+    options.runtime === 'node'
+      ? prerenderToNodeStream(<Component />, {
+          bootstrapScripts: options.scripts,
+          signal: AbortSignal.timeout(options.timeout || 5000),
+          onError: options.onError,
+        })
+      : prerender(<Component />, {
+          bootstrapScripts: options.scripts,
+          signal: AbortSignal.timeout(options.timeout || 5000),
+          onError: options.onError,
+        })
+  )
+
+  return { prelude, postponed }
+}
+```
+
+**关键功能**：
+- 自动检测 Suspense 边界
+- 超时控制（默认 5s）
+- 错误处理和降级
+- 双运行时支持（Node.js / Edge）
+
+#### 2. Resume 恢复渲染引擎
+
+**实现双模式恢复**：
+
+```typescript
+// src/runtime/server/streaming/resume.ts
+import { resume, resumeAndPrerender } from 'react-dom/static'
+import {
+  resumeToPipeableStream,
+  resumeAndPrerenderToNodeStream
+} from 'react-dom/server.node'
+
+// 模式 A: 恢复为 SSR 流（动态内容）
+export async function resumeToSSR(
+  Component: React.ComponentType,
+  postponedState: PostponedState,
+  runtime: 'node' | 'edge'
+) {
+  if (runtime === 'node') {
+    return resumeToPipeableStream(<Component />, postponedState, {
+      onShellReady() { /* ... */ },
+      onError(error) { /* ... */ }
+    })
+  } else {
+    return resume(<Component />, postponedState, {
+      signal: AbortSignal.timeout(10000),
+      onError(error) { /* ... */ }
+    })
+  }
+}
+
+// 模式 B: 恢复为完整静态 HTML（SSG）
+export async function resumeToStatic(
+  Component: React.ComponentType,
+  postponedState: PostponedState,
+  runtime: 'node' | 'edge'
+) {
+  if (runtime === 'node') {
+    return resumeAndPrerenderToNodeStream(<Component />, postponedState)
+  } else {
+    return resumeAndPrerender(<Component />, postponedState)
+  }
+}
+```
+
+#### 3. PostponedState 缓存系统
+
+**支持多种存储后端**：
+
+```typescript
+// src/runtime/server/streaming/ppr-cache.ts
+export interface PPRCache {
+  get(key: string): Promise<PostponedState | null>
+  set(key: string, state: PostponedState, ttl?: number): Promise<void>
+  delete(key: string): Promise<void>
+}
+
+export class RedisPPRCache implements PPRCache {
+  async get(key: string) {
+    const json = await redis.get(`ppr:${key}`)
+    return json ? JSON.parse(json) : null
+  }
+
+  async set(key: string, state: PostponedState, ttl = 3600) {
+    await redis.setex(`ppr:${key}`, ttl, JSON.stringify(state))
+  }
+}
+
+export class FileSystemPPRCache implements PPRCache {
+  // 存储到 .cache/ppr/{route-hash}.json
+}
+
+export class MemoryPPRCache implements PPRCache {
+  // 内存 LRU 缓存
+}
+```
+
+#### 4. 构建时 PPR 策略分析
+
+**自动检测路由的 PPR 策略**：
+
+```typescript
+// src/build/ppr-analyzer.ts
+export interface PPRRouteConfig {
+  path: string
+  strategy: 'static' | 'dynamic' | 'hybrid' | 'auto'
+  hasPostponed: boolean
+  suspenseBoundaries: string[]
+}
+
+export function analyzePPRBoundaries(routes: Route[]): PPRRouteConfig[] {
+  return routes.map(route => {
+    const component = loadComponent(route.filePath)
+
+    return {
+      path: route.path,
+      strategy: detectStrategy(component),
+      hasPostponed: hasSuspenseBoundaries(component),
+      suspenseBoundaries: extractSuspenseBoundaries(component)
+    }
+  })
+}
+
+function detectStrategy(component: any): PPRStrategy {
+  // 检测组件是否有数据获取（use Hook、async Server Component）
+  const hasDataFetching = hasUseHook(component) || hasAsyncComponent(component)
+
+  // 检测是否有 Suspense 边界
+  const hasSuspense = hasSuspenseBoundaries(component)
+
+  if (!hasDataFetching && !hasSuspense) return 'static'
+  if (hasDataFetching && !hasSuspense) return 'dynamic'
+  if (hasSuspense) return 'hybrid'
+
+  return 'auto'
+}
+```
+
+#### 5. 路由级 PPR 配置
+
+**页面组件配置**：
+
+```typescript
+// pages/blog/[id].tsx
+import { Suspense, use } from 'react'
+
+// 导出 PPR 配置
+export const config = {
+  ppr: {
+    enabled: true,
+    strategy: 'hybrid', // 'static' | 'dynamic' | 'hybrid' | 'auto'
+    timeout: 3000,      // prerender 超时时间
+    cache: {
+      enabled: true,
+      ttl: 3600,        // postponed 状态缓存 1 小时
+    }
+  }
+}
+
+export default function BlogPost({ params }: { params: { id: string } }) {
+  return (
+    <article>
+      {/* 静态部分：立即渲染并缓存 */}
+      <header className="blog-header">
+        <h1>Blog Post</h1>
+        <nav>...</nav>
+      </header>
+
+      {/* 动态部分：postponed，resume 时渲染 */}
+      <Suspense fallback={<BlogSkeleton />}>
+        <BlogContent id={params.id} />
+      </Suspense>
+
+      {/* 静态部分：立即渲染 */}
+      <footer>...</footer>
+    </article>
+  )
+}
+
+function BlogContent({ id }: { id: string }) {
+  const post = use(fetchBlogPost(id)) // 触发 postponed
+  return <div dangerouslySetInnerHTML={{ __html: post.content }} />
+}
+```
+
+#### 6. 应用配置扩展
+
+```typescript
+// app.config.ts
+export default {
+  server: {
+    port: 3000,
+    runtime: 'auto',
+
+    // 新增 PPR 配置
+    ppr: {
+      enabled: true,
+      defaultStrategy: 'auto', // 默认策略
+      timeout: 5000,           // 全局 prerender 超时
+
+      cache: {
+        type: 'redis',         // 'memory' | 'redis' | 'filesystem'
+        ttl: 3600,             // 默认缓存时长（秒）
+
+        // Redis 配置
+        redis: {
+          host: 'localhost',
+          port: 6379,
+          db: 0,
+        },
+
+        // 文件系统配置
+        filesystem: {
+          cacheDir: '.cache/ppr',
+        }
+      },
+
+      // 路径级覆盖
+      routes: {
+        '/blog/*': {
+          strategy: 'hybrid',
+          timeout: 3000,
+        },
+        '/api/*': {
+          strategy: 'dynamic', // API 路由永不预渲染
+        },
+        '/': {
+          strategy: 'static',  // 首页完全静态
+        }
+      }
+    }
+  }
+}
+```
+
+#### 7. 渲染流程集成
+
+**更新服务端渲染入口**：
+
+```typescript
+// src/runtime/server/render.tsx
+import { prerenderPage } from './streaming/prerender'
+import { resumeToSSR, resumeToStatic } from './streaming/resume'
+import { PPRCache } from './streaming/ppr-cache'
+
+export async function renderPage(url: string, ctx: Context) {
+  const route = matchRoute(url)
+  const pprConfig = route.config?.ppr || appConfig.server.ppr
+
+  if (!pprConfig.enabled) {
+    // 传统流式 SSR
+    return streamingRender(route, ctx)
+  }
+
+  // PPR 模式
+  const cacheKey = generateCacheKey(url)
+  const cache = createPPRCache(pprConfig.cache.type)
+
+  // 1. 尝试从缓存获取 postponed 状态
+  let postponed = await cache.get(cacheKey)
+
+  if (!postponed) {
+    // 2. 首次渲染：prerender 生成静态壳子
+    const { prelude, postponed: newPostponed } = await prerenderPage(
+      route.component,
+      {
+        runtime: appConfig.server.runtime,
+        timeout: pprConfig.timeout,
+        scripts: ['/client.js'],
+        onError: (error) => console.error('Prerender error:', error)
+      }
+    )
+
+    // 3. 缓存 postponed 状态
+    if (newPostponed) {
+      await cache.set(cacheKey, newPostponed, pprConfig.cache.ttl)
+      postponed = newPostponed
+    }
+
+    // 4. 立即返回静态壳子（TTFB < 50ms）
+    ctx.type = 'text/html'
+    ctx.body = prelude
+  }
+
+  // 5. Resume 动态内容（流式或静态）
+  if (postponed) {
+    const resumeStream = await resumeToSSR(
+      route.component,
+      postponed,
+      appConfig.server.runtime
+    )
+
+    ctx.body = resumeStream
+  }
+}
+```
+
+### PPR 工作流程示例
+
+#### 场景 A: 博客文章页（Hybrid 模式）
+
+```
+┌─────────────────────────────────────────────────┐
+│ 1. 用户访问 /blog/123                            │
+└─────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────┐
+│ 2. prerender() 开始渲染                          │
+│    ✅ <header> 立即渲染（静态）                   │
+│    ⏸️  <BlogContent> 遇到 use(fetch)，postponed  │
+│    ✅ <footer> 立即渲染（静态）                   │
+└─────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────┐
+│ 3. 返回静态 HTML 壳子（TTFB: ~50ms）              │
+│    <html>                                        │
+│      <header>...</header>                       │
+│      <div id="blog-content">                    │
+│        <Skeleton /> <!-- fallback -->           │
+│      </div>                                     │
+│      <footer>...</footer>                       │
+│    </html>                                      │
+└─────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────┐
+│ 4. resume() 在后台完成数据获取                    │
+│    - fetch('/api/blog/123') → 200ms              │
+│    - 渲染 <BlogContent>                          │
+│    - 流式推送替换脚本                             │
+└─────────────────────────────────────────────────┘
+                    ↓
+┌─────────────────────────────────────────────────┐
+│ 5. 客户端接收流式更新，Selective Hydration       │
+│    <script>                                     │
+│      $RC("blog-content", "<article>...</article>")│
+│    </script>                                    │
+└─────────────────────────────────────────────────┘
+```
+
+#### 场景 B: 静态首页（Static 模式）
+
+```
+1. 构建时运行 resumeAndPrerender()
+2. 生成完整静态 HTML 文件 → dist/index.html
+3. 部署到 CDN（Cloudflare, Vercel Edge）
+4. 用户访问：直接返回静态文件（TTFB < 20ms）
+```
+
+### 验收标准
+
+```bash
+# 性能指标
+✅ 静态部分 TTFB < 50ms（从缓存/CDN 返回）
+✅ 动态部分流式加载，不阻塞静态内容
+✅ 首屏 LCP < 1s（静态壳子立即显示）
+✅ Lighthouse 性能分数 > 95
+
+# 功能验证
+✅ prerender() 能正确识别 Suspense 边界并返回 postponed 状态
+✅ postponed 状态可序列化并存储到 Redis/文件/内存
+✅ resume() 能从 postponed 恢复并流式输出动态内容
+✅ resumeAndPrerender() 能生成完整静态 HTML（SSG 模式）
+✅ 构建时能自动分析路由的 PPR 策略（static/dynamic/hybrid）
+
+# 缓存验证
+✅ postponed 状态缓存生效，第二次请求 < 10ms
+✅ Redis 缓存连接正常，支持 TTL 过期
+✅ 文件系统缓存写入 .cache/ppr/*.json
+✅ 内存缓存 LRU 淘汰机制正常
+
+# 配置验证
+✅ 页面级 config.ppr 覆盖全局配置
+✅ 路径匹配规则生效（/blog/* → hybrid, /api/* → dynamic）
+✅ timeout 超时后降级到传统 SSR
+✅ disabled PPR 时回退到传统流式 SSR
+
+# 边缘情况
+✅ 网络错误时显示 fallback，不崩溃
+✅ postponed 状态损坏时重新 prerender
+✅ 缓存服务不可用时降级到无缓存模式
+```
+
+### 输出物
+
+```
+src/runtime/server/streaming/
+├── prerender.ts              # prerender() 封装
+├── resume.ts                 # resume() 和 resumeAndPrerender() 封装
+└── ppr-cache.ts              # PostponedState 缓存系统
+
+src/build/
+├── ppr-analyzer.ts           # PPR 策略分析器
+└── static-generator.ts       # 构建时静态生成
+
+types/framework.d.ts
+├── interface PPRConfig       # PPR 配置类型
+├── interface PostponedState  # Postponed 状态类型
+└── interface PrerenderResult # Prerender 结果类型
+
+docs/
+└── ppr.md                    # PPR 使用文档
+
+examples/basic/
+└── pages/
+    ├── index.tsx             # 静态页面示例
+    ├── blog/[id].tsx         # Hybrid 示例
+    └── dashboard.tsx         # 动态页面示例
+```
+
+### 性能对比
+
+| 模式 | TTFB | FCP | LCP | TTI |
+|------|------|-----|-----|-----|
+| 传统 SSR | ~200ms | ~800ms | ~2.5s | ~3s |
+| 流式 SSR (Phase 4) | ~150ms | ~600ms | ~2s | ~2.5s |
+| **PPR (Phase 10.5)** | **< 50ms** | **< 400ms** | **< 1s** | **< 1.5s** |
+
+### 技术文档参考
+
+- [React 19.2 - prerender API](https://react.dev/reference/react-dom/static/prerender)
+- [React 19.2 - resume API](https://react.dev/reference/react-dom/static/resume)
+- [React 19.2 - resumeAndPrerender API](https://react.dev/reference/react-dom/static/resumeAndPrerender)
+- [React 19.2 Release Notes](https://react.dev/blog/2025/10/01/react-19-2)
 
 ---
 
