@@ -1,13 +1,39 @@
 {
-  "name": "react19-ssr-project",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "react19-ssr-framework",
+  "version": "0.1.0",
+  "description": "A React 19 SSR framework with streaming support and edge runtime compatibility",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "dev": "echo 'Not implemented yet - will be available in Phase 6'",
+    "build": "echo 'Not implemented yet - will be available in Phase 1'",
+    "start": "echo 'Not implemented yet - will be available in Phase 1'"
   },
-  "keywords": [],
+  "keywords": ["react", "ssr", "streaming", "framework"],
   "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "license": "MIT",
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "koa": "^2.15.0",
+    "@koa/router": "^12.0.1",
+    "koa-bodyparser": "^4.4.1",
+    "koa-static": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/koa": "^2.14.0",
+    "@types/koa__router": "^12.0.4",
+    "typescript": "^5.3.3",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "tailwindcss": "^3.4.0",
+    "postcss": "^8.4.32",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.1"
+  }
 }

@@ -39,3 +39,8 @@ Thumbs.db
 # Build output
 dist/
 build/
+.cache/
+
+# TypeScript
+*.tsbuildinfo
+

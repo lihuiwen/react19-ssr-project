@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["src/runtime/server", "src/build", "src/cli"]
+}

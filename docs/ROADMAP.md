@@ -107,22 +107,24 @@ react19-ssr-framework/
 ### 关键里程碑
 
 ```
-✅ Day 2:  项目脚手架完成
-✅ Day 5:  基础 SSR 可运行
-✅ Day 10: 路由和 API 完整
-✅ Day 17: 流式 SSR + 数据获取 (核心MVP)
-✅ Day 24: 完整开发体验 (HMR + 中间件)
-✅ Day 30: 生产可用 (CLI + 错误处理)
-✅ Day 32: 基础性能优化与文档
-✅ Day 35: PPR 极致性能优化 (TTFB < 50ms)
-✅ Day 40: 国际化支持，可发布
+✅ Day 2:  项目脚手架完成 (Phase 0 完成)
+⏳ Day 5:  基础 SSR 可运行
+⏳ Day 10: 路由和 API 完整
+⏳ Day 17: 流式 SSR + 数据获取 (核心MVP)
+⏳ Day 24: 完整开发体验 (HMR + 中间件)
+⏳ Day 30: 生产可用 (CLI + 错误处理)
+⏳ Day 32: 基础性能优化与文档
+⏳ Day 35: PPR 极致性能优化 (TTFB < 50ms)
+⏳ Day 40: 国际化支持，可发布
 ```
 
 ---
 
-## Phase 0: 项目初始化 + TypeScript 配置 (Day 1-2)
+## Phase 0: 项目初始化 + TypeScript 配置 (Day 1-2) ✅
 
 **目标：搭建完整的开发环境和类型系统**
+
+**状态：已完成 (2025-10-25)**
 
 ### 核心任务
 
@@ -173,25 +175,257 @@ mkdir -p types
 
 创建 `examples/basic/pages/index.tsx`（虽然还不能运行）
 
+#### 7. 安全与可观测性基础设施 ✅ **核心架构**
+
+> 这是生产级框架的必备基础，必须在 Phase 0 完成，否则后续重构成本极高
+
+##### 7.1 统一请求上下文（RequestContext）
+
+```typescript
+// src/runtime/server/types.ts
+export interface RequestContext extends Context {
+  // 安全层
+  security: {
+    nonce: string                           // 请求级 CSP nonce
+    sanitizeJSON: (data: any) => string     // 防 XSS 序列化
+  }
+
+  // 追踪层（可观测性）
+  trace: {
+    id: string                              // X-Request-ID
+    startTime: number                       // 请求开始时间
+    marks: Map<string, number>              // 性能标记点
+  }
+
+  // 控制层
+  abortController: AbortController          // 统一中止信号
+  responseMode: 'stream' | 'static' | 'ppr' // 渲染模式
+
+  // 路由层（Phase 2 补充）
+  route?: {
+    path: string
+    params: Record<string, string>
+    query: Record<string, string>
+  }
+}
+```
+
+**为什么必须现在做：**
+- 所有中间件、SSR 渲染、API 处理都依赖这个结构
+- Phase 4 流式渲染强依赖 `abortController` 和 `trace`
+- Phase 10.5 PPR 需要 `responseMode` 决定缓存策略
+
+##### 7.2 安全模块（security.ts）
+
+```typescript
+// src/runtime/server/security.ts
+import crypto from 'crypto'
+
+// 生成请求级 CSP nonce（每次请求不同）
+export function generateNonce(): string {
+  return crypto.randomBytes(16).toString('base64')
+}
+
+// 统一脚本注入（强制使用 nonce，禁止裸 <script>）
+export function injectScript(
+  content: string,
+  options: {
+    nonce: string
+    type?: 'module' | 'text/javascript'
+    async?: boolean
+  }
+): string {
+  const { nonce, type = 'module', async = false } = options
+
+  return `<script type="${type}" nonce="${nonce}"${async ? ' async' : ''}>
+${content}
+</script>`
+}
+
+// 防 XSS 的 JSON 序列化（转义 <、>、&）
+export function sanitizeJSON(data: any): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')      // 防止 </script> 注入
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+}
+```
+
+**使用规范：**
+```typescript
+// ❌ 错误：直接写 <script>
+const html = `<script>window.__DATA__ = ${JSON.stringify(data)}</script>`
+
+// ✅ 正确：统一注入
+const html = injectScript(
+  `window.__DATA__ = ${ctx.security.sanitizeJSON(data)}`,
+  { nonce: ctx.security.nonce }
+)
+```
+
+##### 7.3 响应头管理（headers.ts）
+
+```typescript
+// src/runtime/server/headers.ts
+import crypto from 'crypto'
+
+export class ResponseHeaders {
+  constructor(private ctx: RequestContext) {}
+
+  // CSP 响应头（基于请求级 nonce）
+  setCSP() {
+    const { nonce } = this.ctx.security
+    this.ctx.res.setHeader(
+      'Content-Security-Policy',
+      `script-src 'nonce-${nonce}' 'strict-dynamic'; object-src 'none'; base-uri 'none';`
+    )
+  }
+
+  // Server-Timing 响应头（性能指标）
+  setServerTiming() {
+    const metrics = Array.from(this.ctx.trace.marks.entries())
+      .map(([name, value]) => `${name};dur=${value}`)
+      .join(', ')
+
+    this.ctx.res.setHeader('Server-Timing', metrics)
+  }
+
+  // Cache-Control（根据渲染模式决定）
+  setCacheControl() {
+    const { responseMode } = this.ctx
+
+    if (responseMode === 'static') {
+      this.ctx.res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    } else if (responseMode === 'ppr') {
+      this.ctx.res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400')
+    } else {
+      this.ctx.res.setHeader('Cache-Control', 'private, no-cache')
+    }
+  }
+
+  // ETag（用于 PPR 缓存验证）
+  setETag(content: string) {
+    const hash = crypto.createHash('md5').update(content).digest('hex')
+    this.ctx.res.setHeader('ETag', `"${hash}"`)
+  }
+
+  // 请求追踪 ID
+  setRequestId() {
+    this.ctx.res.setHeader('X-Request-ID', this.ctx.trace.id)
+  }
+
+  // 统一应用所有响应头
+  applyAll() {
+    this.setCSP()
+    this.setServerTiming()
+    this.setCacheControl()
+    this.setRequestId()
+  }
+}
+```
+
+##### 7.4 上下文注入中间件
+
+```typescript
+// src/runtime/server/middleware/context.ts
+import { Context, Next } from 'koa'
+import { generateNonce, sanitizeJSON } from '../security'
+
+export function createContextMiddleware() {
+  return async (ctx: Context, next: Next) => {
+    // 生成请求级唯一标识
+    const nonce = generateNonce()
+    const requestId = crypto.randomUUID()
+
+    // 注入安全层
+    ctx.security = { nonce, sanitizeJSON }
+
+    // 注入追踪层
+    ctx.trace = {
+      id: requestId,
+      startTime: Date.now(),
+      marks: new Map()
+    }
+
+    // 注入控制层
+    ctx.abortController = new AbortController()
+    ctx.responseMode = 'stream' // 默认流式
+
+    await next()
+  }
+}
+```
+
+##### 7.5 应用配置预留
+
+```typescript
+// app.config.ts（用户配置）
+export default {
+  server: {
+    port: 3000,
+    runtime: 'auto',
+
+    // 安全配置
+    security: {
+      csp: true,              // 启用 CSP
+      nonce: true,            // 使用请求级 nonce
+    },
+
+    // 可观测性配置
+    observability: {
+      serverTiming: true,     // 启用 Server-Timing
+      requestId: true,        // 启用 X-Request-ID
+    }
+  }
+}
+```
+
 ### 验收标准
 
 ```bash
+# 原有验收标准
 ✅ pnpm install 成功安装所有依赖
 ✅ pnpm type-check 无 TypeScript 错误
 ✅ 项目结构完整，所有配置文件就位
 ✅ 能导入并使用框架类型定义
 ✅ Git 仓库初始化完成
 ✅ 示例页面文件创建
+
+# 新增：安全与可观测性
+✅ RequestContext 类型定义完整
+✅ generateNonce() 生成 16 字节 base64 nonce
+✅ injectScript() 强制使用 nonce，禁止裸 <script>
+✅ sanitizeJSON() 正确转义 <、>、& 字符
+✅ ResponseHeaders 类能设置 CSP、Server-Timing、Cache-Control
+✅ context 中间件能注入 ctx.security / ctx.trace / ctx.abortController
+✅ app.config.ts 预留 security 和 observability 配置项
 ```
 
 ### 输出物
 
+```
+# 原有输出物
 - package.json（完整依赖）
 - 5 个 tsconfig 文件
 - 3 个类型定义文件
 - 所有配置文件
 - README.md
 - 完整目录结构
+
+# 新增：安全与可观测性基础设施
+src/runtime/server/
+├── types.ts                    # RequestContext 类型定义
+├── security.ts                 # nonce / injectScript / sanitizeJSON
+├── headers.ts                  # ResponseHeaders 统一响应头管理
+└── middleware/
+    └── context.ts              # 上下文注入中间件
+
+config/
+└── security.ts                 # 安全配置（CSP 策略等）
+
+examples/basic/
+└── app.config.ts               # 应用配置模板
+```
 
 ---
 

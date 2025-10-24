@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@runtime/*": ["src/runtime/*"],
+      "@build/*": ["src/build/*"],
+      "@cli/*": ["src/cli/*"]
+    }
+  },
+  "include": ["src", "types", "examples"],
+  "exclude": ["node_modules", "dist"]
+}
