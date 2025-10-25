@@ -13,7 +13,7 @@ export function generateNonce(): string {
  * ❌ 禁止直接写 <script> 标签
  * ✅ 必须使用此函数注入脚本
  *
- * @param content - 脚本内容
+ * @param content - 脚本内容（如果使用 src，则为空字符串）
  * @param options - 注入选项（必须包含 nonce）
  * @returns 带 nonce 的 <script> 标签
  */
@@ -23,10 +23,17 @@ export function injectScript(
     nonce: string
     type?: 'module' | 'text/javascript'
     async?: boolean
+    src?: string  // 外部脚本 URL
   }
 ): string {
-  const { nonce, type = 'module', async = false } = options
+  const { nonce, type = 'module', async = false, src } = options
 
+  // 外部脚本引用
+  if (src) {
+    return `<script type="${type}" nonce="${nonce}" src="${src}"${async ? ' async' : ''}></script>`
+  }
+
+  // 内联脚本
   return `<script type="${type}" nonce="${nonce}"${async ? ' async' : ''}>
 ${content}
 </script>`

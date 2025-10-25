@@ -33,7 +33,7 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 ### Project Status
 
-This is a **greenfield project** with Phase 0 (project initialization, TypeScript setup, security & observability infrastructure) completed. Ready to begin Phase 1 (Basic SSR implementation). Reference `docs/ROADMAP.md` for the complete 11-phase implementation plan (Phase 0-11, ~40 days).
+This is a **greenfield project** with **Phase 0 (project initialization)** and **Phase 1 (basic SSR)** completed. The framework now supports server-side rendering with `renderToString`, client-side hydration with `hydrateRoot`, and full Webpack build pipeline. Ready to begin Phase 2 (File-system routing). Reference `docs/ROADMAP.md` for the complete 11-phase implementation plan (Phase 0-11, ~40 days).
 
 ## Architecture
 
@@ -199,8 +199,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | Phase | Days | Milestone | Status |
 |-------|------|-----------|--------|
 | 0 | 1-2 | Project initialization + TypeScript setup | ✅ Completed |
-| 1 | 3-5 | Basic SSR (renderToString) | ⏳ Next |
-| 2 | 6-8 | File-system routing | - |
+| 1 | 3-5 | Basic SSR (renderToString) | ✅ Completed |
+| 2 | 6-8 | File-system routing | ⏳ Next |
 | 3 | 9-10 | API routes | - |
 | 4 | 11-14 | **Streaming SSR** (core feature) | - |
 | 5 | 15-17 | Data fetching with `use()` Hook | - |
@@ -214,8 +214,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 
 ### Key Milestones
 
-- **Day 2**: 项目脚手架完成
-- **Day 5**: 基础 SSR 可运行
+- ✅ **Day 2**: 项目脚手架完成
+- ✅ **Day 5**: 基础 SSR 可运行
 - **Day 10**: 路由和 API 完整
 - **Day 17**: 流式 SSR + 数据获取 **(核心 MVP)**
 - **Day 24**: 完整开发体验 (HMR + 中间件)
@@ -224,8 +224,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 35**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 40**: 国际化支持，可发布
 
-**Current Phase**: Phase 0 ✅ Completed (2025-10-25)
-**Next Phase**: Phase 1 - 基础 SSR (renderToString)
+**Current Phase**: Phase 1 ✅ Completed (2025-10-25)
+**Next Phase**: Phase 2 - 文件系统路由 (File-system Routing)
 
 ## Key Design Decisions
 
