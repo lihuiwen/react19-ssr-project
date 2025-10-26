@@ -111,7 +111,7 @@ react19-ssr-framework/
 ✅ Day 5:  基础 SSR 可运行 (Phase 1 完成)
 ✅ Day 8:  文件系统路由完整 (Phase 2 完成)
 ✅ Day 9:  迁移到 React Router v6 (Phase 2.5 完成)
-⏳ Day 10: 路由和 API 完整
+✅ Day 10: 路由和 API 完整 (Phase 3 完成)
 ⏳ Day 17: 流式 SSR + 数据获取 (核心MVP)
 ⏳ Day 24: 完整开发体验 (HMR + 中间件)
 ⏳ Day 30: 生产可用 (CLI + 错误处理)
@@ -712,9 +712,11 @@ function BlogContent({ id }) {
 
 ---
 
-## Phase 3: API 路由 (Day 9-10)
+## Phase 3: API 路由 (Day 9-10) ✅
 
 **目标：支持 pages/api/ 目录作为后端接口**
+
+**状态：已完成 (2025-10-26)**
 
 ### 核心任务
 
@@ -737,13 +739,21 @@ function BlogContent({ id }) {
 ✅ /api/hello 返回 JSON
 ✅ /api/posts/123 能获取 params.id
 ✅ POST 请求能接收 body 数据
-✅ API 错误处理正常
+✅ API 错误处理正常（404/405/500）
+✅ 支持多种 HTTP 方法（GET/POST/PUT/DELETE）
+✅ 动态路由参数正确提取
+✅ 查询参数正确解析
 ```
 
 ### 输出物
 
-- `src/build/api-scanner.ts`
-- `src/runtime/server/api-handler.ts`
+- `src/build/api-scanner.ts` ✅ API 路由扫描器（支持动态路由、嵌套目录）
+- `src/runtime/server/api-handler.ts` ✅ API 处理器（方法路由、参数提取、错误处理）
+- `src/cli/dev.ts` ✅ 更新支持 API 路由 watch 模式
+- `examples/basic/pages/api/hello.ts` ✅ 简单 GET API 示例
+- `examples/basic/pages/api/posts.ts` ✅ GET/POST 方法示例
+- `examples/basic/pages/api/posts/[id].ts` ✅ 动态路由 + 多方法示例（GET/PUT/DELETE）
+- `types/framework.d.ts` ✅ Koa Context 类型扩展（params, query）
 
 ---
 

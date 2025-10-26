@@ -1,7 +1,8 @@
 /**
- * Build Script (Phase 1 + Phase 2)
+ * Build Script (Phase 1 + Phase 2 + Phase 3)
  * Builds both client and server bundles
  * Phase 2: Includes route scanning
+ * Phase 3: Includes API route scanning
  */
 
 import webpack from 'webpack'
@@ -9,6 +10,7 @@ import path from 'path'
 import clientConfig from '../build/webpack.client'
 import serverConfig from '../build/webpack.server'
 import { generateRoutesJSON } from '../build/route-scanner'
+import { generateApiRoutesJSON } from '../build/api-scanner'
 
 console.log('🏗️  Building React 19 SSR Framework...\n')
 
@@ -22,6 +24,19 @@ try {
   console.log('✅ Routes scanned successfully\n')
 } catch (error) {
   console.error('❌ Route scanning failed:', error)
+  process.exit(1)
+}
+
+// Phase 3: Generate api-routes.json before building
+console.log('📋 Scanning API routes...')
+const apiDir = path.resolve(__dirname, '../../examples/basic/pages/api')
+const apiRoutesOutput = path.resolve(__dirname, '../../dist/.api-routes.json')
+
+try {
+  generateApiRoutesJSON(apiDir, apiRoutesOutput)
+  console.log('✅ API routes scanned successfully\n')
+} catch (error) {
+  console.error('❌ API route scanning failed:', error)
   process.exit(1)
 }
 

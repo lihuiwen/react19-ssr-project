@@ -213,3 +213,20 @@ export interface PPRCache {
   set(key: string, state: PostponedState, ttl?: number): Promise<void>
   delete(key: string): Promise<void>
 }
+
+// ============================================
+// Phase 3: API 路由类型扩展
+// ============================================
+
+/**
+ * 扩展 Koa Context 类型
+ * 添加 API 路由所需的 params 和 query 属性
+ */
+declare module 'koa' {
+  interface Context {
+    /** 路由参数 (e.g., /api/posts/:id -> { id: '123' }) */
+    params: Record<string, string>
+    /** 查询参数 (e.g., ?page=1&limit=10 -> { page: '1', limit: '10' }) */
+    query: Record<string, string>
+  }
+}
