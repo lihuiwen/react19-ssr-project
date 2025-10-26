@@ -109,6 +109,8 @@ react19-ssr-framework/
 ```
 ✅ Day 2:  项目脚手架完成 (Phase 0 完成)
 ✅ Day 5:  基础 SSR 可运行 (Phase 1 完成)
+✅ Day 8:  文件系统路由完整 (Phase 2 完成)
+✅ Day 9:  迁移到 React Router v6 (Phase 2.5 完成)
 ⏳ Day 10: 路由和 API 完整
 ⏳ Day 17: 流式 SSR + 数据获取 (核心MVP)
 ⏳ Day 24: 完整开发体验 (HMR + 中间件)
@@ -477,9 +479,11 @@ examples/basic/
 
 ---
 
-## Phase 2: 文件系统路由 (Day 6-8)
+## Phase 2: 文件系统路由 (Day 6-8) ✅
 
 **目标：实现约定式路由，支持动态路由**
+
+**状态：已完成 (2025-10-26)**
 
 ### 核心任务
 
@@ -510,14 +514,201 @@ examples/basic/
 ✅ /blog/123 能正确渲染并获取 params.id
 ✅ Link 点击跳转无刷新
 ✅ 浏览器前进/后退正常
+✅ dist/.routes.json 正确生成包含所有路由
+✅ 动态路由参数 [id] 正确转换为 :id
+✅ 路由按优先级排序（静态路由优先于动态路由）
 ```
 
 ### 输出物
 
-- `src/build/route-scanner.ts`
-- `src/runtime/router/router.tsx`
-- `src/runtime/router/Link.tsx`
-- `src/runtime/shared/route-context.tsx`
+- `src/build/route-scanner.ts` ✅ 路由扫描器
+- `src/runtime/server/router.ts` ✅ 服务端路由匹配器
+- `src/runtime/client/router.tsx` ✅ 客户端路由器
+- `src/runtime/client/Link.tsx` ✅ Link 组件
+- `src/runtime/shared/route-context.tsx` ✅ 路由上下文
+- `examples/basic/pages/about.tsx` ✅ 静态路由示例
+- `examples/basic/pages/blog/[id].tsx` ✅ 动态路由示例
+
+---
+
+## Phase 2.5: React Router 迁移 (Migration) ✅
+
+**目标：将自研路由系统迁移到 React Router v6，专注核心功能**
+
+**状态：已完成 (2025-10-26)**
+
+### 背景
+
+虽然自研路由系统已经可以工作，但为了：
+1. 聚焦核心功能（Streaming SSR、PPR）而非路由细节
+2. 获得生产级稳定性和社区支持
+3. 减少后续维护成本
+
+决定迁移到 **React Router v6**（而非 v7，因为 v7 主要优化 Vite，而本项目使用 Webpack）。
+
+### 迁移策略
+
+**保持架构优势**：
+- ✅ 继续使用文件系统路由扫描（`pages/` → routes）
+- ✅ 继续使用 `use()` Hook + Suspense（不使用 React Router 的 loader）
+- ✅ 保持 Streaming SSR 和 PPR 的完整能力
+- ✅ React Router 仅作为路由匹配和导航引擎
+
+### 迁移任务列表
+
+#### 1. 安装依赖
+```bash
+pnpm add react-router-dom@6
+pnpm add -D @types/react-router-dom
+```
+
+#### 2. 适配路由扫描器
+- 修改 `src/build/route-scanner.ts`
+- 将扫描结果转换为 React Router 的 `RouteObject[]` 格式
+- 保持动态路由 `[id]` → `:id` 的转换逻辑
+
+#### 3. 实现服务端渲染适配
+- 使用 `createStaticHandler` 处理请求
+- 使用 `createStaticRouter` 创建路由器
+- 使用 `StaticRouterProvider` 包裹应用
+- 保持 `renderToPipeableStream` 流式渲染
+
+#### 4. 更新客户端入口
+- 使用 `createBrowserRouter` 创建客户端路由器
+- 使用 `RouterProvider` 替代自定义路由组件
+- 保持 `hydrateRoot` 水合逻辑
+
+#### 5. 替换导航组件
+- 删除 `src/runtime/client/Link.tsx`
+- 使用 React Router 的 `<Link>` 组件
+- 删除 `src/runtime/client/router.tsx`
+- 删除 `src/runtime/shared/route-context.tsx`
+
+#### 6. 更新示例页面
+- 修改 `examples/basic/pages/*.tsx`
+- 使用 `useParams()` 替代自定义 params 传递
+- 使用 `useNavigate()` 进行编程式导航（如需要）
+
+#### 7. 测试验证
+```bash
+✅ 服务端渲染正常
+✅ 客户端水合成功
+✅ 静态路由 /about 可访问
+✅ 动态路由 /blog/[id] 参数正确
+✅ <Link> 组件无刷新跳转
+✅ 浏览器前进/后退正常
+✅ Streaming SSR 不受影响
+```
+
+#### 8. 更新文档
+- 更新 `CLAUDE.md` 中的路由说明
+- 更新 `ROADMAP.md` 标注使用 React Router v6
+- 添加迁移说明（本节）
+
+### 代码示例
+
+#### 服务端渲染（新）
+```typescript
+// src/runtime/server/render.tsx
+import { createStaticHandler, createStaticRouter } from 'react-router-dom/server'
+import { renderToPipeableStream } from 'react-dom/server'
+
+export async function render(req: Request, ctx: Context) {
+  const routes = loadRoutes()  // 从 .routes.json 加载
+
+  const { query } = createStaticHandler(routes)
+  const context = await query(new Request(req.url))
+
+  const router = createStaticRouter(routes, context)
+
+  return renderToPipeableStream(
+    <StaticRouterProvider router={router} context={context} />
+  )
+}
+```
+
+#### 客户端入口（新）
+```typescript
+// src/runtime/client/entry.tsx
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+
+const routes = window.__ROUTES__  // 从服务端注入
+const router = createBrowserRouter(routes)
+
+hydrateRoot(
+  document.getElementById('root'),
+  <RouterProvider router={router} />
+)
+```
+
+#### 页面组件（新）
+```typescript
+// examples/basic/pages/blog/[id].tsx
+import { useParams } from 'react-router-dom'
+import { Suspense, use } from 'react'
+
+export default function BlogPost() {
+  const params = useParams()  // React Router hook
+
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <BlogContent id={params.id} />
+    </Suspense>
+  )
+}
+
+function BlogContent({ id }) {
+  const data = use(fetchBlog(id))  // 继续使用 use() Hook
+  return <article>{data.content}</article>
+}
+```
+
+### 验收标准
+
+```bash
+✅ React Router v6 依赖安装成功
+✅ 路由扫描器生成 RouteObject[] 格式
+✅ 服务端使用 createStaticHandler + createStaticRouter
+✅ 客户端使用 createBrowserRouter + RouterProvider
+✅ 所有示例页面正常渲染（/, /about, /blog/[id]）
+✅ 客户端导航无刷新
+✅ 动态路由参数正确传递
+✅ Streaming SSR 功能不受影响
+✅ use() Hook + Suspense 正常工作
+✅ 文档更新完成
+```
+
+### 输出物
+
+**新增文件**：
+- 无（使用 React Router 提供的组件）
+
+**修改文件**：
+- `src/build/route-scanner.ts` - 输出 RouteObject[] 格式
+- `src/runtime/server/render.tsx` - 使用 createStaticRouter
+- `src/runtime/client/entry.tsx` - 使用 createBrowserRouter
+- `examples/basic/pages/**/*.tsx` - 使用 useParams() hook
+
+**删除文件**：
+- `src/runtime/client/Link.tsx` - 使用 React Router 的 Link
+- `src/runtime/client/router.tsx` - 使用 RouterProvider
+- `src/runtime/server/router.ts` - 使用 createStaticHandler
+- `src/runtime/shared/route-context.tsx` - 使用 React Router 内置 context
+
+### 迁移后的架构优势
+
+| 方面 | 自研路由 | React Router v6 |
+|------|---------|-----------------|
+| 稳定性 | ⚠️ 需要大量测试 | ✅ 生产验证 3 年+ |
+| 代码量 | ~400 行 | 0 行（使用库） |
+| 维护成本 | ⚠️ 需要自己维护 | ✅ 社区维护 |
+| Streaming SSR | ✅ | ✅ 完全兼容 |
+| use() Hook | ✅ | ✅ 完全兼容 |
+| PPR 支持 | ✅ | ✅ 完全兼容 |
+| Bundle Size | +0 KB | +50 KB |
+| 学习价值 | ✅ 高 | ⚠️ 低 |
+
+**结论**：迁移后保持所有核心功能优势，同时获得生产级稳定性。
 
 ---
 

@@ -1,13 +1,29 @@
 /**
- * Build Script (Phase 1)
+ * Build Script (Phase 1 + Phase 2)
  * Builds both client and server bundles
+ * Phase 2: Includes route scanning
  */
 
 import webpack from 'webpack'
+import path from 'path'
 import clientConfig from '../build/webpack.client'
 import serverConfig from '../build/webpack.server'
+import { generateRoutesJSON } from '../build/route-scanner'
 
 console.log('🏗️  Building React 19 SSR Framework...\n')
+
+// Phase 2: Generate routes.json before building
+console.log('📋 Scanning routes...')
+const pagesDir = path.resolve(__dirname, '../../examples/basic/pages')
+const routesOutput = path.resolve(__dirname, '../../dist/.routes.json')
+
+try {
+  generateRoutesJSON(pagesDir, routesOutput)
+  console.log('✅ Routes scanned successfully\n')
+} catch (error) {
+  console.error('❌ Route scanning failed:', error)
+  process.exit(1)
+}
 
 const compiler = webpack([clientConfig, serverConfig])
 

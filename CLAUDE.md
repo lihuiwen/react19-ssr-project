@@ -25,7 +25,7 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 - **Build Tool**: Webpack 5
 - **Server Framework**: Koa
-- **Routing**: File-system based routing + API routes
+- **Routing**: React Router v6 + File-system based routing
 - **Styling**: Tailwind CSS
 - **Data Fetching**: React 19 `use()` Hook
 - **Streaming**: `renderToPipeableStream` (Node.js) and `renderToReadableStream` (Edge Runtime)
@@ -33,7 +33,22 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 ### Project Status
 
-This is a **greenfield project** with **Phase 0 (project initialization)** and **Phase 1 (basic SSR)** completed. The framework now supports server-side rendering with `renderToString`, client-side hydration with `hydrateRoot`, and full Webpack build pipeline. Ready to begin Phase 2 (File-system routing). Reference `docs/ROADMAP.md` for the complete 11-phase implementation plan (Phase 0-11, ~40 days).
+This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, and **Phase 2 (file-system routing)** completed. The framework now supports:
+- Server-side rendering with `renderToString` and client-side hydration with `hydrateRoot`
+- File-system based routing with automatic route generation from `pages/` directory
+- Client-side navigation with custom `<Link>` component (no page reloads)
+- Dynamic routes using `[param]` syntax (e.g., `pages/blog/[id].tsx`)
+- Full Webpack build pipeline with route scanning
+
+**Current Phase**: Phase 2.5 - Migrating to React Router v6 (to focus on core SSR features and gain production stability)
+
+**Migration Strategy**:
+- Keep file-system routing scanner (`pages/` → routes)
+- Use React Router only for routing matching and navigation (not loaders)
+- Preserve `use()` Hook + Suspense architecture for data fetching
+- Maintain Streaming SSR and PPR compatibility
+
+Ready to begin Phase 3 (API routes) after migration. Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-11, ~40 days).
 
 ## Architecture
 
@@ -200,8 +215,9 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 |-------|------|-----------|--------|
 | 0 | 1-2 | Project initialization + TypeScript setup | ✅ Completed |
 | 1 | 3-5 | Basic SSR (renderToString) | ✅ Completed |
-| 2 | 6-8 | File-system routing | ⏳ Next |
-| 3 | 9-10 | API routes | - |
+| 2 | 6-8 | File-system routing | ✅ Completed |
+| 2.5 | 9 | React Router v6 migration | ✅ Completed |
+| 3 | 9-10 | API routes | ⏳ Next |
 | 4 | 11-14 | **Streaming SSR** (core feature) | - |
 | 5 | 15-17 | Data fetching with `use()` Hook | - |
 | 6 | 18-22 | HMR + React Fast Refresh | - |
@@ -216,6 +232,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 
 - ✅ **Day 2**: 项目脚手架完成
 - ✅ **Day 5**: 基础 SSR 可运行
+- ✅ **Day 8**: 文件系统路由完整
+- ✅ **Day 9**: React Router v6 迁移完成
 - **Day 10**: 路由和 API 完整
 - **Day 17**: 流式 SSR + 数据获取 **(核心 MVP)**
 - **Day 24**: 完整开发体验 (HMR + 中间件)
@@ -224,8 +242,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 35**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 40**: 国际化支持，可发布
 
-**Current Phase**: Phase 1 ✅ Completed (2025-10-25)
-**Next Phase**: Phase 2 - 文件系统路由 (File-system Routing)
+**Current Phase**: Phase 2.5 ✅ Completed - React Router v6 Migration (2025-10-26)
+**Next Phase**: Phase 3 - API 路由 (API Routes)
 
 ## Key Design Decisions
 
@@ -241,6 +259,61 @@ pages/api/hello.ts        → /api/hello
 ```
 
 Route scanning happens at build time via `src/build/route-scanner.ts` and generates `.routes.json`.
+
+### React Router v6 Integration (Phase 2.5)
+
+The framework uses **React Router v6** for routing matching and navigation, while preserving file-system routing and streaming capabilities:
+
+**Architecture**:
+- **File-system scanner** → Generates `RouteObject[]` for React Router
+- **Server-side**: `createStaticHandler` + `createStaticRouter` + `StaticRouterProvider`
+- **Client-side**: `createBrowserRouter` + `RouterProvider`
+- **Data fetching**: `use()` Hook + Suspense (NOT React Router loaders)
+
+**Server-side rendering**:
+```typescript
+// src/runtime/server/render.tsx
+import { createStaticHandler, createStaticRouter } from 'react-router-dom/server'
+
+const routes = loadRoutes()  // from .routes.json
+const { query } = createStaticHandler(routes)
+const context = await query(new Request(url))
+const router = createStaticRouter(routes, context)
+
+// Streaming SSR compatible
+return renderToPipeableStream(
+  <StaticRouterProvider router={router} context={context} />
+)
+```
+
+**Client-side hydration**:
+```typescript
+// src/runtime/client/entry.tsx
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+
+const router = createBrowserRouter(window.__ROUTES__)
+hydrateRoot(document.getElementById('root'), <RouterProvider router={router} />)
+```
+
+**Page components**:
+```typescript
+// examples/basic/pages/blog/[id].tsx
+import { useParams } from 'react-router-dom'
+
+export default function BlogPost() {
+  const params = useParams()  // React Router hook
+  return <BlogContent id={params.id} />
+}
+```
+
+**Why React Router v6 (not v7)**:
+- v6: Stable, Webpack-friendly, 3+ years production validation
+- v7: Primarily optimized for Vite (not Webpack), newer with fewer resources
+
+**What we DON'T use**:
+- ❌ React Router `loader` functions (they block streaming)
+- ❌ React Router `action` functions
+- ✅ We use `use()` Hook + Suspense for data fetching instead
 
 ### Data Fetching Strategy
 

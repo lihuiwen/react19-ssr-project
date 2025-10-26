@@ -6,7 +6,7 @@
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import type { Context } from 'koa'
-import { injectScript } from './security'
+import { injectScript, sanitizeJSON } from './security'
 import { ResponseHeaders } from './headers'
 
 export interface RenderOptions {
@@ -59,10 +59,10 @@ export function generateHTML(options: {
   <div id="root">${appHtml}</div>
   ${
     initialData
-      ? injectScript(`window.__INITIAL_DATA__ = ${JSON.stringify(initialData)}`, { nonce })
+      ? injectScript(`window.__INITIAL_DATA__ = ${sanitizeJSON(initialData)}`, { nonce })
       : ''
   }
-  ${jsBundles.map(src => injectScript(``, { nonce, src, type: 'module' })).join('\n  ')}
+  ${jsBundles.map(src => injectScript('', { nonce, src, type: 'module' })).join('\n  ')}
 </body>
 </html>`
 }
@@ -201,4 +201,146 @@ function generateErrorHTML(error: any, nonce: string): string {
   </div>
 </body>
 </html>`
+}
+
+/**
+ * Render page with React Router (Phase 2.5)
+ * Uses createStaticHandler and createStaticRouter for SSR
+ */
+export async function renderPageWithRouter(
+  ctx: Context,
+  routeObjects: any[],
+  pagesDir: string,
+): Promise<RenderResult> {
+  const startTime = Date.now()
+
+  try {
+    // Dynamically import React Router server modules
+    const { createStaticHandler, createStaticRouter } = await import('react-router-dom/server')
+    const { StaticRouterProvider } = await import('react-router-dom/server')
+
+    // Mark render start
+    ctx.trace.marks.set('renderStart', Date.now() - ctx.trace.startTime)
+
+    // Convert RouteObjects to include lazy-loaded components
+    const routes = await enhanceRoutesWithComponents(routeObjects, pagesDir)
+
+    // Create static handler for data fetching and route matching
+    const { query } = createStaticHandler(routes)
+
+    // Create a fetch Request from Koa context
+    const request = new Request(`http://localhost${ctx.url}`, {
+      method: ctx.method,
+      headers: new Headers(ctx.headers as any),
+    })
+
+    // Query the routes with the request
+    const context = await query(request)
+
+    // Check if context is a Response (redirect or error)
+    if (context instanceof Response) {
+      const status = context.status
+
+      if (status === 404) {
+        throw new Error('404: Route not found')
+      }
+
+      if (status >= 300 && status < 400) {
+        // Handle redirects
+        const location = context.headers.get('Location')
+        ctx.redirect(location || '/')
+        return { html: '', status }
+      }
+
+      throw new Error(`Unexpected response status: ${status}`)
+    }
+
+    // Create static router with the context
+    const router = createStaticRouter(routes, context)
+
+    // Render the app with StaticRouterProvider
+    const appHtml = renderToString(
+      <StaticRouterProvider router={router} context={context} />
+    )
+
+    // Mark render complete
+    ctx.trace.marks.set('renderComplete', Date.now() - ctx.trace.startTime)
+
+    // Load manifest
+    const manifest = loadManifest()
+
+    // Prepare initial data (include routes for client-side hydration)
+    const initialData = {
+      routes: routeObjects, // Send route configuration to client
+    }
+
+    // Generate complete HTML
+    const html = generateHTML({
+      appHtml,
+      initialData,
+      nonce: ctx.security.nonce,
+      manifest,
+    })
+
+    // Set response mode
+    ctx.responseMode = 'static'
+
+    // Apply response headers
+    const headers = new ResponseHeaders(ctx)
+    headers.applyAll()
+
+    console.log(`[SSR] Rendered with React Router in ${Date.now() - startTime}ms - ${ctx.url}`)
+
+    return {
+      html,
+      status: 200,
+    }
+  } catch (error: any) {
+    console.error('[SSR] Render error:', error)
+
+    // Check for 404
+    if (error.message?.includes('404')) {
+      throw error // Re-throw to be handled by server.ts
+    }
+
+    // Return error page
+    const errorHtml = generateErrorHTML(error, ctx.security.nonce)
+
+    return {
+      html: errorHtml,
+      status: 500,
+    }
+  }
+}
+
+/**
+ * Enhance route objects with lazy-loaded component references
+ */
+async function enhanceRoutesWithComponents(routeObjects: any[], pagesDir: string): Promise<any[]> {
+  // Import page loader (contains all pre-loaded components)
+  const { getPageComponent } = require('./page-loader')
+
+  return routeObjects.map((route) => {
+    const { filePath, ...rest } = route
+
+    if (!filePath) {
+      return rest
+    }
+
+    // Get component from pre-loaded registry
+    const Component = () => {
+      try {
+        const PageComponent = getPageComponent(filePath)
+        return React.createElement(PageComponent)
+      } catch (error) {
+        console.error(`[SSR] Failed to load component: ${filePath}`, error)
+        throw error
+      }
+    }
+
+    return {
+      ...rest,
+      element: <Component />,
+    }
+  })
 }
