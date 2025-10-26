@@ -10,6 +10,7 @@ const pageComponents: Record<string, any> = {
   'about.tsx': require('../../../examples/basic/pages/about').default,
   'App.tsx': require('../../../examples/basic/pages/App').default,
   'blog/[id].tsx': require('../../../examples/basic/pages/blog/[id]').default,
+  'products.tsx': require('../../../examples/basic/pages/products').default,
 }
 
 /**

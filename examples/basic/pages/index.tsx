@@ -10,7 +10,7 @@ export default function HomePage() {
             Welcome to React 19 SSR Framework
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Phase 0 ✅ & Phase 1 ✅ & Phase 2 ✅ & Phase 2.5 🚀 Completed
+            Phase 0 ✅ & Phase 1 ✅ & Phase 2 ✅ & Phase 2.5 ✅ & Phase 3 ✅ & Phase 4 🚀 Completed
           </p>
 
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
@@ -21,10 +21,12 @@ export default function HomePage() {
               <li>✅ Server-Side Rendering (SSR)</li>
               <li>✅ Client-Side Hydration</li>
               <li>✅ File-system routing (Phase 2)</li>
-              <li>🚧 API routes (Phase 3)</li>
-              <li>🚧 Streaming SSR with Suspense (Phase 4)</li>
-              <li>🚧 HMR & React Fast Refresh (Phase 6)</li>
-              <li>🚧 Edge runtime compatible</li>
+              <li>✅ React Router v6 integration (Phase 2.5)</li>
+              <li>✅ Streaming SSR with Suspense (Phase 3)</li>
+              <li>✅ Data fetching with use() Hook (Phase 4)</li>
+              <li>🚧 HMR & React Fast Refresh (Phase 5)</li>
+              <li>🚧 Middleware system (Phase 6)</li>
+              <li>✅ Edge runtime compatible (Phase 3)</li>
               <li>🚧 Partial Pre-rendering (PPR) (Phase 10.5)</li>
             </ul>
           </div>
@@ -58,18 +60,45 @@ export default function HomePage() {
                   <li>Dynamic routes [id].tsx</li>
                 </ul>
               </div>
+              <div>
+                <p className="text-sm font-semibold text-green-800">Phase 2.5: React Router v6</p>
+                <ul className="list-disc list-inside text-sm text-green-600 mt-1 ml-4">
+                  <li>StaticRouterProvider (SSR)</li>
+                  <li>BrowserRouter (Client)</li>
+                  <li>useParams() hook support</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-green-800">Phase 3: Streaming SSR</p>
+                <ul className="list-disc list-inside text-sm text-green-600 mt-1 ml-4">
+                  <li>renderToPipeableStream (Node.js)</li>
+                  <li>renderToReadableStream (Edge)</li>
+                  <li>Automatic runtime detection</li>
+                  <li>TTFB ~120ms, Shell ready ~115ms</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-green-800">Phase 4: Data Fetching (use() Hook)</p>
+                <ul className="list-disc list-inside text-sm text-green-600 mt-1 ml-4">
+                  <li>React 19 use() Hook integration</li>
+                  <li>Promise resource management</li>
+                  <li>SSR data serialization & client hydration</li>
+                  <li>Request deduplication & caching</li>
+                  <li>Error boundaries for data fetching</li>
+                </ul>
+              </div>
             </div>
           </div>
 
           <div className="border-t pt-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Try File-System Routing 🚀
+              Explore Framework Features 🚀
             </h2>
             <p className="text-gray-600 mb-6">
-              Navigate between pages without full page reloads using our new routing system!
+              Navigate between pages to see streaming SSR, use() Hook, and more in action!
             </p>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               <Link
                 to="/about"
                 className="block p-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-lg shadow-lg transition-all transform hover:scale-105"
@@ -100,6 +129,14 @@ export default function HomePage() {
               >
                 <h3 className="text-xl font-bold mb-2">Blog Post #3</h3>
                 <p className="text-sm opacity-90">Streaming SSR article</p>
+              </Link>
+
+              <Link
+                to="/products"
+                className="block p-6 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white rounded-lg shadow-lg transition-all transform hover:scale-105"
+              >
+                <h3 className="text-xl font-bold mb-2">🆕 Products Demo</h3>
+                <p className="text-sm opacity-90">React 19 use() Hook + Suspense</p>
               </Link>
             </div>
           </div>

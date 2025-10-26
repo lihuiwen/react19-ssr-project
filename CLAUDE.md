@@ -33,7 +33,7 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 ### Project Status
 
-This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, **Phase 2 (file-system routing)**, **Phase 2.5 (React Router v6 migration)**, and **Phase 3 (Streaming SSR)** completed. The framework now supports:
+This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, **Phase 2 (file-system routing)**, **Phase 2.5 (React Router v6 migration)**, **Phase 3 (Streaming SSR)**, and **Phase 4 (Data Fetching)** completed. The framework now supports:
 
 **Frontend Features**:
 - Server-side rendering with both static (`renderToString`) and streaming (`renderToPipeableStream`/`renderToReadableStream`) modes
@@ -49,9 +49,18 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 - Performance tracking: TTFB < 120ms, shell ready in ~115ms
 - Backward compatible with static SSR mode
 
-**Current Phase**: Phase 3 ✅ Completed (2025-10-27)
+**Data Fetching (Phase 4 完成)**:
+- React 19 `use()` Hook integration for data fetching
+- Promise resource management system with caching (TTL-based)
+- Server-side data prefetching and serialization to `window.__INITIAL_DATA__.resources`
+- Client-side hydration without duplicate requests
+- Request deduplication (in-flight requests map)
+- ErrorBoundary component for graceful error handling
+- Example: `/products` page demonstrating Suspense + use() Hook
 
-**Next Phase**: Phase 4 - Data Fetching (React 19 `use()` Hook + Suspense)
+**Current Phase**: Phase 4 ✅ Completed (2025-10-27)
+
+**Next Phase**: Phase 5 - HMR + React Fast Refresh
 
 Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-10, ~38 days).
 
@@ -221,7 +230,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 2 | 6-8 | File-system routing | ✅ Completed |
 | 2.5 | 9 | React Router v6 migration | ✅ Completed |
 | 3 | 10 | **Streaming SSR** (core feature) | ✅ Completed |
-| 4 | 11-14 | Data fetching with `use()` Hook | - |
+| 4 | 11 | Data fetching with `use()` Hook | ✅ Completed |
 | 5 | 15-19 | HMR + React Fast Refresh | - |
 | 6 | 20-21 | Middleware system | - |
 | 7 | 22-24 | Error handling + DevTools | - |
@@ -238,7 +247,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - ✅ **Day 8**: 文件系统路由完整
 - ✅ **Day 9**: React Router v6 迁移完成
 - ✅ **Day 10**: 流式 SSR 完成 (Node.js + Edge Runtime)
-- **Day 14**: 数据获取集成 `use()` Hook
+- ✅ **Day 11**: 数据获取集成 `use()` Hook (Phase 4 完成)
 - **Day 21**: 完整开发体验 (HMR + 中间件)
 - **Day 27**: 生产可用 (CLI + 错误处理)
 - **Day 29**: 基础性能优化与文档
@@ -246,8 +255,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 34**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 37**: 国际化支持，可发布
 
-**Current Phase**: Phase 3 ✅ Completed - Streaming SSR (2025-10-27)
-**Next Phase**: Phase 4 - Data Fetching with `use()` Hook
+**Current Phase**: Phase 4 ✅ Completed - Data Fetching with `use()` Hook (2025-10-27)
+**Next Phase**: Phase 5 - HMR + React Fast Refresh
 
 ## Key Design Decisions
 

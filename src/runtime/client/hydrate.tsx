@@ -5,6 +5,7 @@
 
 import React from 'react'
 import { hydrateRoot } from 'react-dom/client'
+import { hydrateResources } from '../shared/resource'
 
 export interface HydrateOptions {
   /** App component to hydrate */
@@ -32,6 +33,12 @@ export function hydrate(options: HydrateOptions): void {
   try {
     // Get initial data from window (injected by server)
     const initialData = getInitialData()
+
+    // Hydrate resources from server (Phase 4)
+    if (initialData?.resources) {
+      hydrateResources(initialData.resources)
+      console.log('[Hydration] Restored resources from server:', Object.keys(initialData.resources).length)
+    }
 
     // Merge initial data with props
     const hydrateProps = {

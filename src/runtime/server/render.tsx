@@ -11,6 +11,7 @@ import type { Context } from 'koa'
 import { injectScript, sanitizeJSON } from './security'
 import { ResponseHeaders } from './headers'
 import { renderStream, getStreamingConfig } from './streaming/adapter'
+import { serializeResources } from '../shared/resource'
 
 export interface RenderOptions {
   /** URL being rendered */
@@ -268,9 +269,13 @@ export async function renderPageWithRouter(
     // Load manifest
     const manifest = loadManifest()
 
-    // Prepare initial data (include routes for client-side hydration)
+    // Serialize resources from cache (Phase 4)
+    const resources = serializeResources()
+
+    // Prepare initial data (include routes and resources for client-side hydration)
     const initialData = {
       routes: routeObjects, // Send route configuration to client
+      resources, // Add serialized resources (Phase 4)
     }
 
     // Generate complete HTML
@@ -406,8 +411,14 @@ export async function renderPageWithRouterStreaming(
     // Get streaming configuration
     const streamingConfig = getStreamingConfig()
 
-    // Prepare initial data (include routes for client-side hydration)
-    const initialData = { routes: routeObjects }
+    // Serialize resources from cache (Phase 4)
+    const resources = serializeResources()
+
+    // Prepare initial data (include routes and resources for client-side hydration)
+    const initialData = {
+      routes: routeObjects,
+      resources, // Add serialized resources
+    }
 
     // Create app with HTML shell
     // Note: Scripts are NOT included in JSX - they're added via bootstrapScripts option
