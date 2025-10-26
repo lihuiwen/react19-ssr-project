@@ -1,13 +1,16 @@
 /**
- * Server-Side Rendering Engine (Phase 1)
- * Basic SSR using renderToString
+ * Server-Side Rendering Engine (Phase 3 - Streaming SSR)
+ * Supports both renderToString (legacy) and streaming SSR
  */
 
 import React from 'react'
 import { renderToString } from 'react-dom/server'
+import { createStaticHandler, createStaticRouter } from 'react-router-dom/server'
+import { StaticRouterProvider } from 'react-router-dom/server'
 import type { Context } from 'koa'
 import { injectScript, sanitizeJSON } from './security'
 import { ResponseHeaders } from './headers'
+import { renderStream, getStreamingConfig } from './streaming/adapter'
 
 export interface RenderOptions {
   /** URL being rendered */
@@ -215,10 +218,6 @@ export async function renderPageWithRouter(
   const startTime = Date.now()
 
   try {
-    // Dynamically import React Router server modules
-    const { createStaticHandler, createStaticRouter } = await import('react-router-dom/server')
-    const { StaticRouterProvider } = await import('react-router-dom/server')
-
     // Mark render start
     ctx.trace.marks.set('renderStart', Date.now() - ctx.trace.startTime)
 
@@ -343,4 +342,135 @@ async function enhanceRoutesWithComponents(routeObjects: any[], pagesDir: string
       element: <Component />,
     }
   })
+}
+
+/**
+ * Render page with React Router and Streaming SSR (Phase 3)
+ * Uses createStaticHandler/createStaticRouter + renderStream
+ */
+export async function renderPageWithRouterStreaming(
+  ctx: Context,
+  routeObjects: any[],
+  pagesDir: string,
+): Promise<void> {
+  const startTime = Date.now()
+
+  try {
+    // Mark render start
+    ctx.trace.marks.set('renderStart', Date.now() - ctx.trace.startTime)
+
+    // Convert RouteObjects to include lazy-loaded components
+    const routes = await enhanceRoutesWithComponents(routeObjects, pagesDir)
+
+    // Create static handler for data fetching and route matching
+    const { query } = createStaticHandler(routes)
+
+    // Create a fetch Request from Koa context
+    const request = new Request(`http://localhost${ctx.url}`, {
+      method: ctx.method,
+      headers: new Headers(ctx.headers as any),
+    })
+
+    // Query the routes with the request
+    const context = await query(request)
+
+    // Check if context is a Response (redirect or error)
+    if (context instanceof Response) {
+      const status = context.status
+
+      if (status === 404) {
+        throw new Error('404: Route not found')
+      }
+
+      if (status >= 300 && status < 400) {
+        // Handle redirects
+        const location = context.headers.get('Location')
+        ctx.redirect(location || '/')
+        return
+      }
+
+      throw new Error(`Unexpected response status: ${status}`)
+    }
+
+    // Create static router with the context
+    const router = createStaticRouter(routes, context)
+
+    // Load manifest for bootstrap scripts
+    const manifest = loadManifest()
+    const jsBundles = [
+      manifest['react.js'],
+      manifest['vendors.js'],
+      manifest['client.js'] || '/client.js',
+    ].filter(Boolean)
+
+    // Get streaming configuration
+    const streamingConfig = getStreamingConfig()
+
+    // Prepare initial data (include routes for client-side hydration)
+    const initialData = { routes: routeObjects }
+
+    // Create app with HTML shell
+    // Note: Scripts are NOT included in JSX - they're added via bootstrapScripts option
+    const app = (
+      <html lang="en">
+        <head>
+          <meta charSet="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>React 19 SSR Framework</title>
+          <link rel="stylesheet" href={manifest['client.css'] || '/client.css'} />
+        </head>
+        <body>
+          <div id="root">
+            <StaticRouterProvider router={router} context={context} />
+          </div>
+          <script
+            nonce={ctx.security.nonce}
+            dangerouslySetInnerHTML={{
+              __html: `window.__INITIAL_DATA__ = ${sanitizeJSON(initialData)}`,
+            }}
+          />
+        </body>
+      </html>
+    )
+
+    // Set response mode
+    ctx.responseMode = 'stream'
+
+    // Stream the response with callbacks
+    await renderStream(app, ctx, {
+      ...streamingConfig,
+      bootstrapScripts: jsBundles,
+      nonce: ctx.security.nonce,
+
+      onShellReady: () => {
+        // Mark when shell is ready
+        ctx.trace.marks.set('shellReady', Date.now() - ctx.trace.startTime)
+        console.log(`[SSR] Shell ready in ${Date.now() - startTime}ms - ${ctx.url}`)
+      },
+
+      onAllReady: () => {
+        // Mark when all content is ready (including Suspense boundaries)
+        ctx.trace.marks.set('allReady', Date.now() - ctx.trace.startTime)
+        console.log(`[SSR] All content ready in ${Date.now() - startTime}ms - ${ctx.url}`)
+      },
+
+      onError: (error: Error) => {
+        console.error('[SSR] Streaming error:', error)
+      },
+    })
+
+    console.log(`[SSR] Streamed with React Router in ${Date.now() - startTime}ms - ${ctx.url}`)
+  } catch (error: any) {
+    console.error('[SSR] Render error:', error)
+
+    // Check for 404
+    if (error.message?.includes('404')) {
+      throw error // Re-throw to be handled by server.ts
+    }
+
+    // Send error response
+    ctx.status = 500
+    ctx.type = 'text/html'
+    ctx.body = generateErrorHTML(error, ctx.security.nonce)
+  }
 }

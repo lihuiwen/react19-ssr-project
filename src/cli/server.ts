@@ -1,13 +1,13 @@
 /**
- * Koa Server with SSR (Phase 2.5 - React Router Integration)
- * HTTP server with server-side rendering using React Router v6
+ * Koa Server with SSR (Phase 3 - Streaming SSR)
+ * HTTP server with server-side rendering using React Router v6 + streaming
  */
 
 import Koa from 'koa'
 import serve from 'koa-static'
 import path from 'path'
 import { createContextMiddleware } from '../runtime/server/middleware/context'
-import { renderPageWithRouter } from '../runtime/server/render'
+import { renderPageWithRouter, renderPageWithRouterStreaming } from '../runtime/server/render'
 import { loadRoutes, RouteObject } from '../build/route-scanner'
 import React from 'react'
 
@@ -59,7 +59,7 @@ app.use(async (ctx, next) => {
   }
 })
 
-// 4. Routing + SSR middleware (Phase 2.5 - React Router)
+// 4. Routing + SSR middleware (Phase 3 - Streaming SSR)
 app.use(async (ctx) => {
   // Skip non-HTML requests (static files, API routes, etc.)
   const isStaticFile = /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/.test(ctx.path)
@@ -67,13 +67,21 @@ app.use(async (ctx) => {
     return
   }
 
-  try {
-    // Render page with React Router
-    const result = await renderPageWithRouter(ctx, routes, PAGES_DIR)
+  // Check if streaming is enabled (default: true)
+  const useStreaming = process.env.DISABLE_STREAMING !== 'true'
 
-    ctx.status = result.status
-    ctx.type = 'text/html'
-    ctx.body = result.html
+  try {
+    if (useStreaming) {
+      // Use streaming SSR (Phase 3)
+      await renderPageWithRouterStreaming(ctx, routes, PAGES_DIR)
+      // Response is handled by streaming - no need to set ctx.body
+    } else {
+      // Fallback to static SSR (Phase 2.5)
+      const result = await renderPageWithRouter(ctx, routes, PAGES_DIR)
+      ctx.status = result.status
+      ctx.type = 'text/html'
+      ctx.body = result.html
+    }
   } catch (error: any) {
     console.error('[SSR] Render error:', error)
 

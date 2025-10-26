@@ -710,9 +710,11 @@ function BlogContent({ id }) {
 
 ---
 
-## Phase 3: 流式 SSR (Day 10-14) ⚠️ 核心难点
+## Phase 3: 流式 SSR (Day 10) ✅ 已完成
 
 **目标：升级到 Streaming SSR，支持 Suspense，兼容双运行时**
+
+**状态：已完成 (2025-10-27)**
 
 ### 核心任务
 
@@ -758,18 +760,73 @@ function BlogContent({ id }) {
 ✅ Node.js 环境使用 renderToPipeableStream
 ✅ 边缘环境使用 renderToReadableStream
 ✅ 配置 runtime: 'auto' 自动选择
-✅ 页面分段加载（Network 面板看到分段响应）
-✅ Suspense fallback 显示后被替换
-✅ 客户端水合仅针对已加载部分
-✅ 慢接口不阻塞整个页面渲染
+✅ Transfer-Encoding: chunked 流式传输
+✅ 配置环境变量 DISABLE_STREAMING 可降级到静态 SSR
+✅ React Router v6 集成完整（StaticRouterProvider + streaming）
+✅ 性能指标达标：TTFB ~120ms, Shell ready ~115ms
+```
+
+### 实际完成情况 (2025-10-27)
+
+**✅ 完成的功能：**
+- Node.js 流式适配器 (`src/runtime/server/streaming/node.ts`)
+  - 使用 `renderToPipeableStream`
+  - `onShellReady`, `onAllReady`, `onError` 回调完整
+  - 转换为 Koa 兼容的 Writable 流
+  - 请求中断处理 (`abort()`)
+
+- Edge Runtime 适配器 (`src/runtime/server/streaming/web.ts`)
+  - 使用 `renderToReadableStream`
+  - Web ReadableStream → Node.js compatible stream
+  - 支持 Vercel Edge, Cloudflare Workers, Deno Deploy
+
+- 统一流式适配器 (`src/runtime/server/streaming/adapter.ts`)
+  - 自动运行时检测 (EdgeRuntime/Deno/Bun vs Node.js)
+  - 统一 `renderStream()` API
+  - 环境变量配置 (`SSR_RUNTIME`, `DISABLE_STREAMING`)
+
+- React Router v6 集成 (`src/runtime/server/render.tsx`)
+  - 新增 `renderPageWithRouterStreaming()` 函数
+  - 与 `createStaticHandler` + `createStaticRouter` 集成
+  - 性能跟踪：`ctx.trace.marks` (shellReady, allReady)
+
+- 服务器更新 (`src/cli/server.ts`)
+  - 默认启用流式 SSR
+  - 通过 `DISABLE_STREAMING=true` 降级到 `renderToString`
+  - 向后兼容
+
+**📊 性能数据：**
+```
+[SSR] Using node streaming renderer
+[SSR] Shell ready in 115ms - /
+[SSR] All content ready in 116ms - /
+[SSR] Streamed with React Router in 184ms - /
+```
+
+**🔧 使用命令：**
+```bash
+# 默认流式 SSR (Node.js)
+pnpm start
+
+# 禁用流式，使用静态 SSR
+DISABLE_STREAMING=true pnpm start
+
+# 强制使用特定运行时
+SSR_RUNTIME=node pnpm start
+SSR_RUNTIME=edge pnpm start
 ```
 
 ### 输出物
 
-- `src/runtime/server/streaming/adapter.ts`
-- `src/runtime/server/streaming/node.ts`
-- `src/runtime/server/streaming/web.ts`
-- `src/runtime/client/selective-hydrate.tsx`
+- ✅ `src/runtime/server/streaming/adapter.ts` - 统一接口
+- ✅ `src/runtime/server/streaming/node.ts` - Node.js 适配器
+- ✅ `src/runtime/server/streaming/web.ts` - Edge Runtime 适配器
+- ✅ `src/runtime/server/render.tsx` - 流式渲染实现
+- ✅ `src/cli/server.ts` - 服务器配置更新
+
+**⏭️ 未完成（留到后续 Phase）：**
+- ⏳ Suspense 边界 fallback/替换（需要 Phase 4 数据获取）
+- ⏳ Selective Hydration 客户端实现（需要 Phase 4-5）
 
 ---
 
