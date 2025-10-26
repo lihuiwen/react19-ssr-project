@@ -33,22 +33,20 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 ### Project Status
 
-This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, and **Phase 2 (file-system routing)** completed. The framework now supports:
+This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, **Phase 2 (file-system routing)**, and **Phase 2.5 (React Router v6 migration)** completed. The framework now supports:
+
+**Frontend Features**:
 - Server-side rendering with `renderToString` and client-side hydration with `hydrateRoot`
+- React Router v6 for routing (StaticRouterProvider + RouterProvider)
 - File-system based routing with automatic route generation from `pages/` directory
-- Client-side navigation with custom `<Link>` component (no page reloads)
 - Dynamic routes using `[param]` syntax (e.g., `pages/blog/[id].tsx`)
 - Full Webpack build pipeline with route scanning
 
-**Current Phase**: Phase 2.5 - Migrating to React Router v6 (to focus on core SSR features and gain production stability)
+**Current Phase**: Phase 2.5 ✅ Completed (2025-10-26)
 
-**Migration Strategy**:
-- Keep file-system routing scanner (`pages/` → routes)
-- Use React Router only for routing matching and navigation (not loaders)
-- Preserve `use()` Hook + Suspense architecture for data fetching
-- Maintain Streaming SSR and PPR compatibility
+**Next Phase**: Phase 3 - 流式 SSR (Streaming SSR with renderToPipeableStream/renderToReadableStream)
 
-Ready to begin Phase 3 (API routes) after migration. Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-11, ~40 days).
+Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-10, ~38 days).
 
 ## Architecture
 
@@ -64,14 +62,12 @@ src/
 │   └── shared/       # Shared utilities (types, data fetching)
 ├── build/            # Webpack configurations and build tools
 │   ├── webpack.*.ts  # Client/server/dev configurations
-│   ├── route-scanner.ts
-│   └── api-scanner.ts
+│   └── route-scanner.ts
 └── cli/              # Command-line interface (dev, build, start)
 
 examples/basic/       # Example application
 └── pages/            # File-system routing directory
-    ├── *.tsx         # Page components
-    └── api/          # API route handlers
+    └── *.tsx         # Page components
 
 types/                # TypeScript type definitions
 ```
@@ -217,16 +213,15 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 1 | 3-5 | Basic SSR (renderToString) | ✅ Completed |
 | 2 | 6-8 | File-system routing | ✅ Completed |
 | 2.5 | 9 | React Router v6 migration | ✅ Completed |
-| 3 | 9-10 | API routes | ⏳ Next |
-| 4 | 11-14 | **Streaming SSR** (core feature) | - |
-| 5 | 15-17 | Data fetching with `use()` Hook | - |
-| 6 | 18-22 | HMR + React Fast Refresh | - |
-| 7 | 23-24 | Middleware system | - |
-| 8 | 25-27 | Error handling + DevTools | - |
-| 9 | 28-30 | CLI tools | - |
-| 10 | 31-32 | Basic performance optimization + docs | - |
-| 10.5 | 33-35 | **Partial Pre-rendering (PPR)** - React 19.2 | - |
-| 11 | 36-40 | i18n (optional) | - |
+| 3 | 10-14 | **Streaming SSR** (core feature) | - |
+| 4 | 14-17 | Data fetching with `use()` Hook | - |
+| 5 | 18-22 | HMR + React Fast Refresh | - |
+| 6 | 23-24 | Middleware system | - |
+| 7 | 25-27 | Error handling + DevTools | - |
+| 8 | 28-30 | CLI tools | - |
+| 9 | 31-32 | Basic performance optimization + docs | - |
+| 9.5 | 33-35 | **Partial Pre-rendering (PPR)** - React 19.2 | - |
+| 10 | 36-38 | i18n (optional) | - |
 
 ### Key Milestones
 
@@ -234,7 +229,6 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - ✅ **Day 5**: 基础 SSR 可运行
 - ✅ **Day 8**: 文件系统路由完整
 - ✅ **Day 9**: React Router v6 迁移完成
-- **Day 10**: 路由和 API 完整
 - **Day 17**: 流式 SSR + 数据获取 **(核心 MVP)**
 - **Day 24**: 完整开发体验 (HMR + 中间件)
 - **Day 30**: 生产可用 (CLI + 错误处理)
@@ -243,7 +237,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 40**: 国际化支持，可发布
 
 **Current Phase**: Phase 2.5 ✅ Completed - React Router v6 Migration (2025-10-26)
-**Next Phase**: Phase 3 - API 路由 (API Routes)
+**Next Phase**: Phase 3 - 流式 SSR (Streaming SSR)
 
 ## Key Design Decisions
 
@@ -255,7 +249,7 @@ Pages are automatically converted to routes:
 pages/index.tsx           → /
 pages/about.tsx           → /about
 pages/blog/[id].tsx       → /blog/:id
-pages/api/hello.ts        → /api/hello
+
 ```
 
 Route scanning happens at build time via `src/build/route-scanner.ts` and generates `.routes.json`.
@@ -464,7 +458,7 @@ pnpm start
 ### File Naming Conventions
 
 - **Page components**: `pages/ComponentName.tsx` or `pages/[param].tsx`
-- **API routes**: `pages/api/routeName.ts`
+
 - **Build scripts**: `src/build/feature-name.ts`
 - **Runtime modules**: `src/runtime/{server|client|shared}/module-name.tsx`
 

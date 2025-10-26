@@ -8,7 +8,7 @@
 核心技术栈:
   构建工具: Webpack 5
   服务端: Koa
-  路由: 文件系统路由 + API路由
+  路由: 文件系统路由 (基于 React Router v6)
   样式: Tailwind CSS
   数据获取: use() Hook (React 19)
   项目结构: 单包结构
@@ -74,10 +74,8 @@ react19-ssr-framework/
 │       ├── pages/            # 文件系统路由
 │       │   ├── index.tsx     # /
 │       │   ├── about.tsx     # /about
-│       │   ├── blog/
-│       │   │   └── [id].tsx  # /blog/:id
-│       │   └── api/          # API 路由
-│       │       └── hello.ts  # /api/hello
+│       │   └── blog/
+│       │       └── [id].tsx  # /blog/:id
 │       ├── locales/          # i18n 翻译文件（Phase 11 可选）
 │       │   ├── en.json
 │       │   └── zh.json
@@ -111,13 +109,13 @@ react19-ssr-framework/
 ✅ Day 5:  基础 SSR 可运行 (Phase 1 完成)
 ✅ Day 8:  文件系统路由完整 (Phase 2 完成)
 ✅ Day 9:  迁移到 React Router v6 (Phase 2.5 完成)
-⏳ Day 10: 路由和 API 完整
-⏳ Day 17: 流式 SSR + 数据获取 (核心MVP)
-⏳ Day 24: 完整开发体验 (HMR + 中间件)
-⏳ Day 30: 生产可用 (CLI + 错误处理)
-⏳ Day 32: 基础性能优化与文档
-⏳ Day 35: PPR 极致性能优化 (TTFB < 50ms)
-⏳ Day 40: 国际化支持，可发布
+⏳ Day 14: 流式 SSR (核心MVP)
+⏳ Day 17: 数据获取 use() Hook 完整
+⏳ Day 22: 完整开发体验 (HMR + 中间件)
+⏳ Day 28: 生产可用 (CLI + 错误处理)
+⏳ Day 30: 基础性能优化与文档
+⏳ Day 33: PPR 极致性能优化 (TTFB < 50ms)
+⏳ Day 38: 国际化支持，可发布
 ```
 
 ---
@@ -712,42 +710,7 @@ function BlogContent({ id }) {
 
 ---
 
-## Phase 3: API 路由 (Day 9-10)
-
-**目标：支持 pages/api/ 目录作为后端接口**
-
-### 核心任务
-
-#### 1. API 路由扫描
-- 扫描 `pages/api/*.ts`
-- 注册到 Koa 路由
-
-#### 2. API Handler 处理
-- `export default function handler(ctx) {}`
-- 支持 GET/POST/PUT/DELETE
-- 自动解析 JSON body
-
-#### 3. 示例 API
-- `/api/hello`（静态数据）
-- `/api/posts/[id]`（动态参数）
-
-### 验收标准
-
-```bash
-✅ /api/hello 返回 JSON
-✅ /api/posts/123 能获取 params.id
-✅ POST 请求能接收 body 数据
-✅ API 错误处理正常
-```
-
-### 输出物
-
-- `src/build/api-scanner.ts`
-- `src/runtime/server/api-handler.ts`
-
----
-
-## Phase 4: 流式 SSR (Day 11-14) ⚠️ 核心难点
+## Phase 3: 流式 SSR (Day 10-14) ⚠️ 核心难点
 
 **目标：升级到 Streaming SSR，支持 Suspense，兼容双运行时**
 
@@ -810,7 +773,7 @@ function BlogContent({ id }) {
 
 ---
 
-## Phase 5: 数据获取 use() Hook (Day 15-17)
+## Phase 4: 数据获取 use() Hook (Day 14-17)
 
 **目标：实现 React 19 use() Hook 数据流**
 
@@ -869,7 +832,7 @@ function BlogContent({ id }) {
 
 ---
 
-## Phase 6: 开发服务器 + HMR (Day 18-22) ⚠️ 复杂功能
+## Phase 5: 开发服务器 + HMR (Day 18-22) ⚠️ 复杂功能
 
 **目标：实现热更新，提升开发体验**
 
@@ -947,7 +910,7 @@ HMR Server (Port 3001)          SSR Server (Port 3000)
 
 ---
 
-## Phase 7: 中间件系统 (Day 23-24)
+## Phase 6: 中间件系统 (Day 23-24)
 
 **目标：实现请求拦截和处理链**
 
@@ -1009,7 +972,7 @@ export const middleware: Middleware[] = [
 
 ---
 
-## Phase 8: 错误处理 + DevTools (Day 25-27)
+## Phase 7: 错误处理 + DevTools (Day 25-27)
 
 **目标：完善开发体验和错误提示**
 
@@ -1048,7 +1011,7 @@ export const middleware: Middleware[] = [
 
 ---
 
-## Phase 9: CLI 工具 (Day 28-30)
+## Phase 8: CLI 工具 (Day 28-30)
 
 **目标：完善命令行工具**
 
@@ -1090,7 +1053,7 @@ export const middleware: Middleware[] = [
 
 ---
 
-## Phase 10: 基础性能优化与文档 (Day 31-32)
+## Phase 9: 基础性能优化与文档 (Day 31-32)
 
 **目标：基础性能优化和文档完善**
 
@@ -1131,7 +1094,7 @@ export const middleware: Middleware[] = [
 
 ---
 
-## Phase 10.5: Partial Pre-rendering (PPR) 支持 (Day 33-35) ⚠️ 高级特性
+## Phase 9.5: Partial Pre-rendering (PPR) 支持 (Day 33-35) ⚠️ 高级特性
 
 **目标：实现 React 19.2 两阶段渲染，极致性能优化**
 
@@ -1590,7 +1553,7 @@ examples/basic/
 
 ---
 
-## Phase 11: 国际化 i18n (Day 36-40)
+## Phase 10: 国际化 i18n (Day 36-38)
 
 **目标：支持多语言切换**
 
