@@ -33,27 +33,22 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 ### Project Status
 
-This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, **Phase 2 (file-system routing)**, **Phase 2.5 (React Router v6 migration)**, and **Phase 3 (API routes)** completed. The framework now supports:
-
-**Frontend Features**:
+This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, and **Phase 2 (file-system routing)** completed. The framework now supports:
 - Server-side rendering with `renderToString` and client-side hydration with `hydrateRoot`
-- React Router v6 for routing (StaticRouterProvider + RouterProvider)
 - File-system based routing with automatic route generation from `pages/` directory
+- Client-side navigation with custom `<Link>` component (no page reloads)
 - Dynamic routes using `[param]` syntax (e.g., `pages/blog/[id].tsx`)
 - Full Webpack build pipeline with route scanning
 
-**API Routes (Phase 3 完成)**:
-- File-system based API routes (`pages/api/` → `/api/*`)
-- Support for multiple HTTP methods (GET, POST, PUT, DELETE, etc.)
-- Dynamic route parameters (e.g., `pages/api/posts/[id].ts` → `/api/posts/:id`)
-- Automatic body parsing (JSON, form data)
-- Error handling (404, 405, 500)
+**Current Phase**: Phase 2.5 - Migrating to React Router v6 (to focus on core SSR features and gain production stability)
 
-**Current Phase**: Phase 3 ✅ Completed (2025-10-26)
+**Migration Strategy**:
+- Keep file-system routing scanner (`pages/` → routes)
+- Use React Router only for routing matching and navigation (not loaders)
+- Preserve `use()` Hook + Suspense architecture for data fetching
+- Maintain Streaming SSR and PPR compatibility
 
-**Next Phase**: Phase 4 - 流式 SSR (Streaming SSR with renderToPipeableStream/renderToReadableStream)
-
-Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-11, ~40 days).
+Ready to begin Phase 3 (API routes) after migration. Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-11, ~40 days).
 
 ## Architecture
 
@@ -222,8 +217,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 1 | 3-5 | Basic SSR (renderToString) | ✅ Completed |
 | 2 | 6-8 | File-system routing | ✅ Completed |
 | 2.5 | 9 | React Router v6 migration | ✅ Completed |
-| 3 | 9-10 | API routes | ✅ Completed |
-| 4 | 11-14 | **Streaming SSR** (core feature) | ⏳ Next |
+| 3 | 9-10 | API routes | ⏳ Next |
+| 4 | 11-14 | **Streaming SSR** (core feature) | - |
 | 5 | 15-17 | Data fetching with `use()` Hook | - |
 | 6 | 18-22 | HMR + React Fast Refresh | - |
 | 7 | 23-24 | Middleware system | - |
@@ -239,7 +234,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - ✅ **Day 5**: 基础 SSR 可运行
 - ✅ **Day 8**: 文件系统路由完整
 - ✅ **Day 9**: React Router v6 迁移完成
-- ✅ **Day 10**: 路由和 API 完整
+- **Day 10**: 路由和 API 完整
 - **Day 17**: 流式 SSR + 数据获取 **(核心 MVP)**
 - **Day 24**: 完整开发体验 (HMR + 中间件)
 - **Day 30**: 生产可用 (CLI + 错误处理)
@@ -247,8 +242,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 35**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 40**: 国际化支持，可发布
 
-**Current Phase**: Phase 3 ✅ Completed - API Routes (2025-10-26)
-**Next Phase**: Phase 4 - 流式 SSR (Streaming SSR)
+**Current Phase**: Phase 2.5 ✅ Completed - React Router v6 Migration (2025-10-26)
+**Next Phase**: Phase 3 - API 路由 (API Routes)
 
 ## Key Design Decisions
 

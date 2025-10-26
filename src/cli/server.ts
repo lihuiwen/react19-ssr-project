@@ -1,18 +1,14 @@
 /**
- * Koa Server with SSR (Phase 3 - API Routes)
- * HTTP server with server-side rendering and API routes
+ * Koa Server with SSR (Phase 2.5 - React Router Integration)
+ * HTTP server with server-side rendering using React Router v6
  */
 
 import Koa from 'koa'
 import serve from 'koa-static'
-import bodyParser from 'koa-bodyparser'
 import path from 'path'
 import { createContextMiddleware } from '../runtime/server/middleware/context'
 import { renderPageWithRouter } from '../runtime/server/render'
 import { loadRoutes, RouteObject } from '../build/route-scanner'
-import { loadApiRoutes } from '../build/api-scanner'
-import { createApiHandler } from '../runtime/server/api-handler'
-import type { ApiRoute } from '../build/api-scanner'
 import React from 'react'
 
 const app = new Koa()
@@ -21,17 +17,15 @@ const app = new Koa()
 const PORT = process.env.PORT || 3000
 const STATIC_DIR = path.resolve(__dirname, '../../dist/client')
 const PAGES_DIR = path.resolve(__dirname, '../../examples/basic/pages')
-const API_DIR = path.resolve(__dirname, '../../examples/basic/pages/api')
 const ROUTES_JSON = path.resolve(__dirname, '../../dist/.routes.json')
-const API_ROUTES_JSON = path.resolve(__dirname, '../../dist/.api-routes.json')
 
-// Load page routes
+// Load routes
 let routes: RouteObject[] = []
 
 try {
   const routesData = loadRoutes(ROUTES_JSON)
   routes = routesData.routes
-  console.log(`[Server] Loaded ${routes.length} page routes (React Router format)`)
+  console.log(`[Server] Loaded ${routes.length} routes (React Router format)`)
   routes.forEach((route) => {
     const routePath = route.index ? '/ (index)' : route.path
     console.log(`  - ${routePath}`)
@@ -42,27 +36,6 @@ try {
   routes = []
 }
 
-// Load API routes
-let apiRoutes: ApiRoute[] = []
-
-try {
-  const apiRoutesData = loadApiRoutes(API_ROUTES_JSON)
-  apiRoutes = apiRoutesData.routes
-
-  if (apiRoutes.length > 0) {
-    console.log(`[Server] Loaded ${apiRoutes.length} API routes`)
-    apiRoutes.forEach((route) => {
-      const params = route.params && route.params.length > 0
-        ? ` (params: ${route.params.join(', ')})`
-        : ''
-      console.log(`  - ${route.path}${params}`)
-    })
-  }
-} catch (error) {
-  console.log('[Server] No API routes found (this is normal if pages/api/ doesn\'t exist yet)')
-  apiRoutes = []
-}
-
 /**
  * Setup middleware stack
  */
@@ -70,24 +43,12 @@ try {
 // 1. Context middleware (MUST be first - injects security, trace, etc.)
 app.use(createContextMiddleware())
 
-// 2. Body parser for JSON requests (before API handler)
-app.use(bodyParser({
-  enableTypes: ['json', 'form'],
-  jsonLimit: '10mb',
-  formLimit: '10mb',
-}))
-
-// 3. Static file serving
+// 2. Static file serving
 app.use(serve(STATIC_DIR, {
   maxage: process.env.NODE_ENV === 'production' ? 31536000000 : 0,
 }))
 
-// 4. API routes handler
-if (apiRoutes.length > 0) {
-  app.use(createApiHandler(apiRoutes, API_DIR))
-}
-
-// 5. Error handling middleware
+// 3. Error handling middleware
 app.use(async (ctx, next) => {
   try {
     await next()

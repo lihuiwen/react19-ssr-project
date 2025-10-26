@@ -1,8 +1,7 @@
 /**
- * Development Script (Phase 1 + Phase 2 + Phase 3)
+ * Development Script (Phase 1 + Phase 2)
  * Basic development mode - will be enhanced in Phase 6 with HMR
  * Phase 2: Includes route scanning and watching
- * Phase 3: Includes API route scanning and watching
  */
 
 import webpack from 'webpack'
@@ -11,7 +10,6 @@ import path from 'path'
 import clientConfig from '../build/webpack.client'
 import serverConfig from '../build/webpack.server'
 import { generateRoutesJSON, watchRoutes } from '../build/route-scanner'
-import { generateApiRoutesJSON, watchApiRoutes } from '../build/api-scanner'
 
 console.log('🔧 Starting development mode...\n')
 
@@ -31,24 +29,6 @@ try {
 // Watch routes for changes
 watchRoutes(pagesDir, routesOutput, () => {
   console.log('🔄 Routes updated, server will restart on next build...')
-})
-
-// Phase 3: Generate api-routes.json before building
-console.log('📋 Scanning API routes...')
-const apiDir = path.resolve(__dirname, '../../examples/basic/pages/api')
-const apiRoutesOutput = path.resolve(__dirname, '../../dist/.api-routes.json')
-
-try {
-  generateApiRoutesJSON(apiDir, apiRoutesOutput)
-  console.log('✅ API routes scanned successfully\n')
-} catch (error) {
-  console.error('❌ API route scanning failed:', error)
-  process.exit(1)
-}
-
-// Watch API routes for changes
-watchApiRoutes(apiDir, apiRoutesOutput, () => {
-  console.log('🔄 API routes updated, server will restart on next build...')
 })
 
 let serverProcess: any = null
