@@ -109,13 +109,14 @@ react19-ssr-framework/
 ✅ Day 5:  基础 SSR 可运行 (Phase 1 完成)
 ✅ Day 8:  文件系统路由完整 (Phase 2 完成)
 ✅ Day 9:  迁移到 React Router v6 (Phase 2.5 完成)
-⏳ Day 14: 流式 SSR (核心MVP)
-⏳ Day 17: 数据获取 use() Hook 完整
-⏳ Day 22: 完整开发体验 (HMR + 中间件)
-⏳ Day 28: 生产可用 (CLI + 错误处理)
-⏳ Day 30: 基础性能优化与文档
-⏳ Day 33: PPR 极致性能优化 (TTFB < 50ms)
-⏳ Day 38: 国际化支持，可发布
+✅ Day 10: 流式 SSR 完成 (Phase 3 完成)
+⏳ Day 14: 数据获取 use() Hook 完整
+⏳ Day 21: 完整开发体验 (HMR + 中间件)
+⏳ Day 27: 生产可用 (CLI + 错误处理)
+⏳ Day 29: 基础性能优化与文档
+⏳ Day 31: SEO 优化完成 (Phase 9.5)
+⏳ Day 34: PPR 极致性能优化 (TTFB < 50ms)
+⏳ Day 37: 国际化支持，可发布
 ```
 
 ---
@@ -1151,7 +1152,292 @@ export const middleware: Middleware[] = [
 
 ---
 
-## Phase 9.5: Partial Pre-rendering (PPR) 支持 (Day 33-35) ⚠️ 高级特性
+## Phase 9.5: SEO 优化 (Day 30-31) 🔍 可选特性
+
+**目标：生产级 SEO 优化，确保搜索引擎友好**
+
+> 解决 use() Hook + 流式 SSR 的 SEO 问题，同时保持性能优势
+
+### 背景
+
+虽然 `use()` Hook 在 SSR 中会等待数据加载完成，但为了最佳 SEO 效果，需要：
+1. 针对搜索引擎爬虫优化渲染策略
+2. 预取关键 SEO 数据（meta 标签、结构化数据）
+3. 实现差异化响应（普通用户快速返回，爬虫返回完整内容）
+
+### 核心任务
+
+#### 1. 爬虫检测中间件
+
+**实现爬虫识别**：
+
+```typescript
+// src/runtime/server/middleware/bot-detection.ts
+export function createBotDetectionMiddleware() {
+  return async (ctx: Context, next: Next) => {
+    const userAgent = ctx.headers['user-agent'] || ''
+    ctx.isBot = detectBot(userAgent)
+    await next()
+  }
+}
+
+function detectBot(userAgent: string): boolean {
+  const botPatterns = [
+    'Googlebot',      // Google
+    'Bingbot',        // Microsoft Bing
+    'Slurp',          // Yahoo
+    'DuckDuckBot',    // DuckDuckGo
+    'Baiduspider',    // Baidu
+    'YandexBot',      // Yandex
+    'facebookexternalhit',  // Facebook
+    'LinkedInBot',    // LinkedIn
+    'Twitterbot',     // Twitter
+    'WhatsApp',       // WhatsApp
+  ]
+
+  return botPatterns.some(bot =>
+    userAgent.toLowerCase().includes(bot.toLowerCase())
+  )
+}
+```
+
+#### 2. 差异化渲染策略
+
+**普通用户 vs 搜索引擎**：
+
+```typescript
+// src/runtime/server/render.tsx
+await renderStream(app, ctx, {
+  onShellReady() {
+    // 普通用户：立即返回 HTML shell (TTFB ~115ms)
+    if (!ctx.isBot) {
+      ctx.trace.marks.set('shellReady', Date.now() - ctx.trace.startTime)
+      // pipe stream to response
+    }
+  },
+
+  onAllReady() {
+    // 搜索引擎：等待所有内容完成 (TTFB ~300ms)
+    if (ctx.isBot) {
+      ctx.trace.marks.set('allReady', Date.now() - ctx.trace.startTime)
+      console.log(`[SEO] Full content ready for bot: ${ctx.url}`)
+      // pipe stream to response
+    }
+  }
+})
+```
+
+#### 3. SEO 数据预取
+
+**快速获取 meta 标签数据**（< 50ms）：
+
+```typescript
+// src/runtime/server/seo.ts
+export interface SEOData {
+  title: string
+  description: string
+  keywords?: string[]
+  ogImage?: string
+  ogType?: string
+  canonical?: string
+  structuredData?: any
+}
+
+export async function fetchSEOData(
+  route: Route,
+  params: any
+): Promise<SEOData> {
+  // 根据路由类型获取 SEO 元数据
+  if (route.path.startsWith('/blog/')) {
+    // 只获取元数据，不加载完整内容
+    const meta = await fetchBlogMetadata(params.id)
+
+    return {
+      title: meta.title,
+      description: meta.excerpt,
+      keywords: meta.tags,
+      ogImage: meta.coverImage,
+      ogType: 'article',
+      canonical: `https://your-site.com/blog/${params.id}`,
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": meta.title,
+        "image": meta.coverImage,
+        "datePublished": meta.publishedAt,
+        "author": {
+          "@type": "Person",
+          "name": meta.author
+        }
+      }
+    }
+  }
+
+  // 默认 SEO 数据
+  return {
+    title: 'Your Site Name',
+    description: 'Your site description',
+    ogType: 'website'
+  }
+}
+```
+
+#### 4. 服务端注入 SEO 标签
+
+**在 HTML head 中注入完整 SEO 数据**：
+
+```typescript
+// src/runtime/server/render.tsx
+export async function renderPageWithRouterStreaming(ctx: Context) {
+  // 路由匹配
+  const route = matchRoute(ctx.url, routes)
+
+  // 预取 SEO 数据（快速，< 50ms）
+  const seoData = await fetchSEOData(route, params)
+
+  const app = (
+    <html lang="en">
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        {/* 基础 SEO */}
+        <title>{seoData.title}</title>
+        <meta name="description" content={seoData.description} />
+        {seoData.keywords && (
+          <meta name="keywords" content={seoData.keywords.join(', ')} />
+        )}
+
+        {/* Open Graph (社交媒体) */}
+        <meta property="og:title" content={seoData.title} />
+        <meta property="og:description" content={seoData.description} />
+        <meta property="og:type" content={seoData.ogType} />
+        {seoData.ogImage && (
+          <meta property="og:image" content={seoData.ogImage} />
+        )}
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoData.title} />
+        <meta name="twitter:description" content={seoData.description} />
+
+        {/* Canonical URL */}
+        {seoData.canonical && (
+          <link rel="canonical" href={seoData.canonical} />
+        )}
+
+        {/* 结构化数据 (JSON-LD) */}
+        {seoData.structuredData && (
+          <script
+            type="application/ld+json"
+            nonce={ctx.security.nonce}
+            dangerouslySetInnerHTML={{
+              __html: sanitizeJSON(seoData.structuredData)
+            }}
+          />
+        )}
+
+        <link rel="stylesheet" href={manifest['client.css']} />
+      </head>
+      <body>
+        <div id="root">
+          <StaticRouterProvider router={router} context={context} />
+        </div>
+      </body>
+    </html>
+  )
+}
+```
+
+#### 5. React 19 Title 组件支持
+
+**页面组件中的动态 meta 标签**：
+
+```typescript
+// examples/basic/pages/blog/[id].tsx
+import { use, Suspense } from 'react'
+
+function BlogContent({ id }: { id: string }) {
+  const data = use(fetchBlog(id))
+
+  return (
+    <>
+      {/* React 19 会自动提升到 <head> */}
+      <title>{data.title} | Your Blog</title>
+      <meta name="description" content={data.excerpt} />
+
+      <article>
+        <h1>{data.title}</h1>
+        <div dangerouslySetInnerHTML={{ __html: data.content }} />
+      </article>
+    </>
+  )
+}
+```
+
+### 验收标准
+
+```bash
+# 基础 SEO
+✅ 所有页面包含正确的 <title> 和 <meta> 标签
+✅ 结构化数据符合 Schema.org 规范
+✅ Open Graph 标签完整（title, description, image, type）
+✅ Canonical URL 正确配置
+
+# 爬虫支持
+✅ 模拟 Googlebot 请求返回完整 HTML 内容
+✅ 爬虫请求 TTFB < 500ms
+✅ 普通用户 TTFB < 150ms（不受影响）
+
+# 工具验证
+✅ Google Rich Results Test 通过
+✅ Facebook Debugger 预览正常
+✅ Twitter Card Validator 通过
+✅ Lighthouse SEO 得分 > 95
+
+# 测试命令
+curl -A "Mozilla/5.0 (compatible; Googlebot/2.1)" http://localhost:3000/blog/123
+# 检查 HTML 包含完整内容和 meta 标签
+```
+
+### 输出物
+
+```
+src/runtime/server/
+├── middleware/
+│   └── bot-detection.ts           # 爬虫检测中间件
+├── seo.ts                         # SEO 数据预取
+└── render.tsx                     # 更新：支持差异化渲染
+
+examples/basic/pages/
+└── blog/[id].tsx                  # 示例：SEO 最佳实践
+
+docs/
+└── SEO.md                         # SEO 优化指南
+
+tests/
+└── seo.test.ts                    # SEO 测试用例
+```
+
+### 性能对比
+
+| 场景 | TTFB | SEO 效果 | 用户体验 |
+|------|------|----------|----------|
+| **普通用户（当前）** | ~115ms | N/A | ⭐⭐⭐⭐⭐ 极快 |
+| **搜索引擎（当前）** | ~115ms | ⚠️ 可能不完整 | N/A |
+| **普通用户（优化后）** | ~115ms | N/A | ⭐⭐⭐⭐⭐ 极快 |
+| **搜索引擎（优化后）** | ~300ms | ⭐⭐⭐⭐⭐ 完整内容 | N/A |
+
+### 技术要点
+
+1. **不影响普通用户性能**：只对爬虫使用 `onAllReady`
+2. **SEO 数据快速**：meta 标签数据 < 50ms，不阻塞渲染
+3. **与 use() Hook 完全兼容**：服务端会等待 Promise 完成
+4. **为 Phase 10 (PPR) 做准备**：PPR 可以进一步优化爬虫响应速度
+
+---
+
+## Phase 10: Partial Pre-rendering (PPR) 支持 (Day 32-34) ⚠️ 高级特性
 
 **目标：实现 React 19.2 两阶段渲染，极致性能优化**
 
@@ -1610,7 +1896,7 @@ examples/basic/
 
 ---
 
-## Phase 10: 国际化 i18n (Day 36-38)
+## Phase 11: 国际化 i18n (Day 35-37) 🌍 可选特性
 
 **目标：支持多语言切换**
 

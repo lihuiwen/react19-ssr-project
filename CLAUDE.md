@@ -227,8 +227,9 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 7 | 22-24 | Error handling + DevTools | - |
 | 8 | 25-27 | CLI tools | - |
 | 9 | 28-29 | Basic performance optimization + docs | - |
-| 9.5 | 30-32 | **Partial Pre-rendering (PPR)** - React 19.2 | - |
-| 10 | 33-35 | i18n (optional) | - |
+| 9.5 | 30-31 | **SEO Optimization** (optional) | - |
+| 10 | 32-34 | **Partial Pre-rendering (PPR)** - React 19.2 | - |
+| 11 | 35-37 | i18n (optional) | - |
 
 ### Key Milestones
 
@@ -241,8 +242,9 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 21**: 完整开发体验 (HMR + 中间件)
 - **Day 27**: 生产可用 (CLI + 错误处理)
 - **Day 29**: 基础性能优化与文档
-- **Day 32**: PPR 极致性能优化 (TTFB < 50ms)
-- **Day 35**: 国际化支持，可发布
+- **Day 31**: SEO 优化完成（可选）
+- **Day 34**: PPR 极致性能优化 (TTFB < 50ms)
+- **Day 37**: 国际化支持，可发布
 
 **Current Phase**: Phase 3 ✅ Completed - Streaming SSR (2025-10-27)
 **Next Phase**: Phase 4 - Data Fetching with `use()` Hook
