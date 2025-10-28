@@ -13,6 +13,7 @@ import { generateRoutesJSON } from '../build/route-scanner'
 console.log('🏗️  Building React 19 SSR Framework...\n')
 
 // Phase 2: Generate routes.json before building
+// Note: page-loader.ts now uses Webpack require.context (no generation needed)
 console.log('📋 Scanning routes...')
 const pagesDir = path.resolve(__dirname, '../../examples/basic/pages')
 const routesOutput = path.resolve(__dirname, '../../dist/.routes.json')

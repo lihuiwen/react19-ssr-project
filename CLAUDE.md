@@ -33,7 +33,7 @@ This is a **React 19.2 SSR (Server-Side Rendering) Framework** built from scratc
 
 ### Project Status
 
-This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, **Phase 2 (file-system routing)**, **Phase 2.5 (React Router v6 migration)**, **Phase 3 (Streaming SSR)**, and **Phase 4 (Data Fetching)** completed. The framework now supports:
+This is a **greenfield project** with **Phase 0 (project initialization)**, **Phase 1 (basic SSR)**, **Phase 2 (file-system routing)**, **Phase 2.5 (React Router v6 migration)**, **Phase 3 (Streaming SSR)**, **Phase 4 (Data Fetching)**, and **Phase 5 (HMR + React Fast Refresh)** completed. The framework now supports:
 
 **Frontend Features**:
 - Server-side rendering with both static (`renderToString`) and streaming (`renderToPipeableStream`/`renderToReadableStream`) modes
@@ -58,9 +58,19 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 - ErrorBoundary component for graceful error handling
 - Example: `/products` page demonstrating Suspense + use() Hook
 
-**Current Phase**: Phase 4 ✅ Completed (2025-10-27)
+**HMR + React Fast Refresh (Phase 5 完成)**:
+- Dual-server architecture: HMR Server (port 3001) + SSR Server (port 3000)
+- Hot Module Replacement with React Fast Refresh support
+- Client-side hot updates without page refresh (state preservation)
+- Server-side hot reload with nodemon (automatic restart on changes)
+- Webpack Dev Middleware + Hot Middleware for SSE-based updates
+- React Refresh TypeScript transformer integration
+- Graceful shutdown handling to prevent port conflicts
+- See `docs/HMR.md` for detailed architecture documentation
 
-**Next Phase**: Phase 5 - HMR + React Fast Refresh
+**Current Phase**: Phase 5 ✅ Completed (2025-10-28)
+
+**Next Phase**: Phase 6 - Middleware System
 
 Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-10, ~38 days).
 
@@ -248,15 +258,16 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - ✅ **Day 9**: React Router v6 迁移完成
 - ✅ **Day 10**: 流式 SSR 完成 (Node.js + Edge Runtime)
 - ✅ **Day 11**: 数据获取集成 `use()` Hook (Phase 4 完成)
-- **Day 21**: 完整开发体验 (HMR + 中间件)
+- ✅ **Day 12**: HMR + React Fast Refresh 完成 (Phase 5 完成)
+- **Day 21**: 完整开发体验 (中间件系统)
 - **Day 27**: 生产可用 (CLI + 错误处理)
 - **Day 29**: 基础性能优化与文档
 - **Day 31**: SEO 优化完成（可选）
 - **Day 34**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 37**: 国际化支持，可发布
 
-**Current Phase**: Phase 4 ✅ Completed - Data Fetching with `use()` Hook (2025-10-27)
-**Next Phase**: Phase 5 - HMR + React Fast Refresh
+**Current Phase**: Phase 5 ✅ Completed - HMR + React Fast Refresh (2025-10-28)
+**Next Phase**: Phase 6 - Middleware System
 
 ## Key Design Decisions
 
@@ -482,7 +493,7 @@ SSR_RUNTIME=edge NODE_ENV=production pnpm start
 - Never directly call `renderToPipeableStream` or `renderToReadableStream` - always use the adapter
 - Test both runtime modes: `runtime: 'node'` and `runtime: 'edge'`
 
-### When Working with HMR (Phase 6+)
+### When Working with HMR (Phase 5+)
 
 - **Never** mix HMR server and SSR server responsibilities
 - HMR client must connect to `http://localhost:3001/__webpack_hmr`

@@ -334,7 +334,7 @@ async function enhanceRoutesWithComponents(routeObjects: any[], pagesDir: string
     // Get component from pre-loaded registry
     const Component = () => {
       try {
-        const PageComponent = getPageComponent(filePath)
+        const PageComponent = getPageComponent(filePath, pagesDir)
         return React.createElement(PageComponent)
       } catch (error) {
         console.error(`[SSR] Failed to load component: ${filePath}`, error)

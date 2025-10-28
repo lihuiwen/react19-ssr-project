@@ -1,19 +1,18 @@
 /**
- * Development Script (Phase 1 + Phase 2)
- * Basic development mode - will be enhanced in Phase 6 with HMR
- * Phase 2: Includes route scanning and watching
+ * Development Script (Phase 5 - HMR)
+ * Dual-server architecture with Hot Module Replacement
+ * - HMR Server (Port 3001): Webpack dev server for client code
+ * - SSR Server (Port 3000): Koa server for server-side rendering
  */
 
-import webpack from 'webpack'
 import { spawn } from 'child_process'
 import path from 'path'
-import clientConfig from '../build/webpack.client'
-import serverConfig from '../build/webpack.server'
 import { generateRoutesJSON, watchRoutes } from '../build/route-scanner'
 
-console.log('🔧 Starting development mode...\n')
+console.log('🔧 Starting development mode with HMR...\n')
 
-// Phase 2: Generate routes.json before building
+// Generate routes.json before starting servers
+// Note: page-loader.ts now uses Webpack require.context (no generation needed)
 console.log('📋 Scanning routes...')
 const pagesDir = path.resolve(__dirname, '../../examples/basic/pages')
 const routesOutput = path.resolve(__dirname, '../../dist/.routes.json')
@@ -26,88 +25,45 @@ try {
   process.exit(1)
 }
 
-// Watch routes for changes
+// Watch routes for changes and regenerate routes.json
 watchRoutes(pagesDir, routesOutput, () => {
-  console.log('🔄 Routes updated, server will restart on next build...')
+  console.log('🔄 Routes updated, regenerating routes.json...')
 })
 
-let serverProcess: any = null
+// Start the dual-server development environment
+const devScriptPath = path.resolve(__dirname, '../../scripts/dev.js')
 
-// Build client and server in watch mode
-const compiler = webpack([clientConfig, serverConfig])
+console.log('🚀 Starting dual-server development environment...\n')
 
-let isFirstBuild = true
-
-compiler.watch(
-  {
-    aggregateTimeout: 300,
-    poll: undefined,
+const devProcess = spawn('node', [devScriptPath], {
+  stdio: 'inherit',
+  shell: true,
+  env: {
+    ...process.env,
+    NODE_ENV: 'development',
   },
-  (err, stats) => {
-    if (err) {
-      console.error('❌ Build failed:', err)
-      return
-    }
+})
 
-    if (!stats) {
-      return
-    }
+devProcess.on('error', (error: Error) => {
+  console.error('❌ Development environment error:', error)
+  process.exit(1)
+})
 
-    // Print build results
-    console.log(
-      stats.toString({
-        colors: true,
-        modules: false,
-        children: false,
-        chunks: false,
-        chunkModules: false,
-      })
-    )
-
-    if (stats.hasErrors()) {
-      console.error('\n❌ Build failed with errors')
-      return
-    }
-
-    // On successful build, restart server
-    if (isFirstBuild || !stats.hasErrors()) {
-      restartServer()
-      isFirstBuild = false
-    }
+devProcess.on('exit', (code: number | null) => {
+  if (code !== 0) {
+    console.error(`❌ Development environment exited with code ${code}`)
+    process.exit(code || 1)
   }
-)
-
-function restartServer() {
-  // Kill existing server
-  if (serverProcess) {
-    console.log('\n🔄 Restarting server...')
-    serverProcess.kill()
-  }
-
-  // Start new server process
-  serverProcess = spawn('node', ['dist/server/server.js'], {
-    stdio: 'inherit',
-    env: { ...process.env, NODE_ENV: 'development' },
-  })
-
-  serverProcess.on('error', (error: Error) => {
-    console.error('❌ Server error:', error)
-  })
-}
+})
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('\n[Dev] Shutting down...')
-  if (serverProcess) {
-    serverProcess.kill()
+function shutdown() {
+  console.log('\n👋 Shutting down development environment...')
+  if (devProcess) {
+    devProcess.kill('SIGTERM')
   }
   process.exit(0)
-})
+}
 
-process.on('SIGINT', () => {
-  console.log('\n[Dev] Shutting down...')
-  if (serverProcess) {
-    serverProcess.kill()
-  }
-  process.exit(0)
-})
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
