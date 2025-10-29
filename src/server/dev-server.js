@@ -50,7 +50,7 @@ app.use(async (ctx) => {
   try {
     // Dynamically load the server module to get latest code
     const { createContextMiddleware } = require('../runtime/server/middleware/context')
-    const { renderPageWithRouterStreaming, renderPageWithRouter } = require('../runtime/server/render')
+    const { renderPageWithRouterStreaming } = require('../runtime/server/render')
     const { loadRoutes } = require('../build/route-scanner')
 
     const ROUTES_JSON = path.resolve(__dirname, '../../dist/.routes.json')
@@ -63,20 +63,9 @@ app.use(async (ctx) => {
     // Apply context middleware
     const contextMiddleware = createContextMiddleware()
     await contextMiddleware(ctx, async () => {
-      // Check if streaming is enabled
-      const useStreaming = process.env.DISABLE_STREAMING !== 'true'
-
       try {
-        if (useStreaming) {
-          // Use streaming SSR
-          await renderPageWithRouterStreaming(ctx, routes, PAGES_DIR)
-        } else {
-          // Fallback to static SSR
-          const result = await renderPageWithRouter(ctx, routes, PAGES_DIR)
-          ctx.status = result.status
-          ctx.type = 'text/html'
-          ctx.body = result.html
-        }
+        // Use streaming SSR
+        await renderPageWithRouterStreaming(ctx, routes, PAGES_DIR)
       } catch (error) {
         console.error('[SSR] Render error:', error)
 

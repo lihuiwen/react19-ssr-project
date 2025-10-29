@@ -1,10 +1,8 @@
 /**
  * Server-Side Rendering Engine (Phase 3 - Streaming SSR)
- * Supports both renderToString (legacy) and streaming SSR
  */
 
 import React from 'react'
-import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter } from 'react-router-dom/server'
 import { StaticRouterProvider } from 'react-router-dom/server'
 import type { Context } from 'koa'
@@ -12,22 +10,6 @@ import { injectScript, sanitizeJSON } from './security'
 import { ResponseHeaders } from './headers'
 import { renderStream, getStreamingConfig } from './streaming/adapter'
 import { serializeResources } from '../shared/resource'
-
-export interface RenderOptions {
-  /** URL being rendered */
-  url: string
-  /** App component to render */
-  App: React.ComponentType<any>
-  /** Props to pass to the App component */
-  props?: any
-  /** Additional data to serialize to client */
-  initialData?: any
-}
-
-export interface RenderResult {
-  html: string
-  status: number
-}
 
 /**
  * Generate complete HTML document with SSR content
@@ -72,63 +54,6 @@ export function generateHTML(options: {
 }
 
 /**
- * Render a React component to HTML string (Phase 1 - Basic SSR)
- */
-export async function renderPage(ctx: Context, options: RenderOptions): Promise<RenderResult> {
-  const startTime = Date.now()
-
-  try {
-    const { App, props = {}, initialData } = options
-
-    // Mark render start
-    ctx.trace.marks.set('renderStart', Date.now() - ctx.trace.startTime)
-
-    // Render React app to string
-    const appHtml = renderToString(<App {...props} />)
-
-    // Mark render complete
-    ctx.trace.marks.set('renderComplete', Date.now() - ctx.trace.startTime)
-
-    // Load manifest (or use defaults in development)
-    const manifest = loadManifest()
-
-    // Generate complete HTML
-    const html = generateHTML({
-      appHtml,
-      initialData,
-      nonce: ctx.security.nonce,
-      manifest,
-    })
-
-    // Set response mode
-    ctx.responseMode = 'static'
-
-    // Apply response headers
-    const headers = new ResponseHeaders(ctx)
-    headers.applyAll()
-
-    console.log(
-      `[SSR] Rendered in ${Date.now() - startTime}ms - ${options.url}`,
-    )
-
-    return {
-      html,
-      status: 200,
-    }
-  } catch (error) {
-    console.error('[SSR] Render error:', error)
-
-    // Return error page
-    const errorHtml = generateErrorHTML(error, ctx.security.nonce)
-
-    return {
-      html: errorHtml,
-      status: 500,
-    }
-  }
-}
-
-/**
  * Load webpack manifest.json
  * In development, falls back to default paths
  */
@@ -138,7 +63,8 @@ function loadManifest(): Record<string, string> {
     const path = require('path')
 
     // Resolve manifest path relative to the server dist directory
-    const manifestPath = path.resolve(__dirname, '../../../dist/client/manifest.json')
+    // In production: dist/server/server.js -> ../client/manifest.json -> dist/client/manifest.json
+    const manifestPath = path.resolve(__dirname, '../client/manifest.json')
     const manifestContent = fs.readFileSync(manifestPath, 'utf-8')
     const manifest = JSON.parse(manifestContent)
 
@@ -205,116 +131,6 @@ function generateErrorHTML(error: any, nonce: string): string {
   </div>
 </body>
 </html>`
-}
-
-/**
- * Render page with React Router (Phase 2.5)
- * Uses createStaticHandler and createStaticRouter for SSR
- */
-export async function renderPageWithRouter(
-  ctx: Context,
-  routeObjects: any[],
-  pagesDir: string,
-): Promise<RenderResult> {
-  const startTime = Date.now()
-
-  try {
-    // Mark render start
-    ctx.trace.marks.set('renderStart', Date.now() - ctx.trace.startTime)
-
-    // Convert RouteObjects to include lazy-loaded components
-    const routes = await enhanceRoutesWithComponents(routeObjects, pagesDir)
-
-    // Create static handler for data fetching and route matching
-    const { query } = createStaticHandler(routes)
-
-    // Create a fetch Request from Koa context
-    const request = new Request(`http://localhost${ctx.url}`, {
-      method: ctx.method,
-      headers: new Headers(ctx.headers as any),
-    })
-
-    // Query the routes with the request
-    const context = await query(request)
-
-    // Check if context is a Response (redirect or error)
-    if (context instanceof Response) {
-      const status = context.status
-
-      if (status === 404) {
-        throw new Error('404: Route not found')
-      }
-
-      if (status >= 300 && status < 400) {
-        // Handle redirects
-        const location = context.headers.get('Location')
-        ctx.redirect(location || '/')
-        return { html: '', status }
-      }
-
-      throw new Error(`Unexpected response status: ${status}`)
-    }
-
-    // Create static router with the context
-    const router = createStaticRouter(routes, context)
-
-    // Render the app with StaticRouterProvider
-    const appHtml = renderToString(
-      <StaticRouterProvider router={router} context={context} />
-    )
-
-    // Mark render complete
-    ctx.trace.marks.set('renderComplete', Date.now() - ctx.trace.startTime)
-
-    // Load manifest
-    const manifest = loadManifest()
-
-    // Serialize resources from cache (Phase 4)
-    const resources = serializeResources()
-
-    // Prepare initial data (include routes and resources for client-side hydration)
-    const initialData = {
-      routes: routeObjects, // Send route configuration to client
-      resources, // Add serialized resources (Phase 4)
-    }
-
-    // Generate complete HTML
-    const html = generateHTML({
-      appHtml,
-      initialData,
-      nonce: ctx.security.nonce,
-      manifest,
-    })
-
-    // Set response mode
-    ctx.responseMode = 'static'
-
-    // Apply response headers
-    const headers = new ResponseHeaders(ctx)
-    headers.applyAll()
-
-    console.log(`[SSR] Rendered with React Router in ${Date.now() - startTime}ms - ${ctx.url}`)
-
-    return {
-      html,
-      status: 200,
-    }
-  } catch (error: any) {
-    console.error('[SSR] Render error:', error)
-
-    // Check for 404
-    if (error.message?.includes('404')) {
-      throw error // Re-throw to be handled by server.ts
-    }
-
-    // Return error page
-    const errorHtml = generateErrorHTML(error, ctx.security.nonce)
-
-    return {
-      html: errorHtml,
-      status: 500,
-    }
-  }
 }
 
 /**
@@ -402,11 +218,13 @@ export async function renderPageWithRouterStreaming(
 
     // Load manifest for bootstrap scripts
     const manifest = loadManifest()
+    console.log('[DEBUG] Manifest contents:', manifest)
     const jsBundles = [
       manifest['react.js'],
       manifest['vendors.js'],
       manifest['client.js'] || '/client.js',
     ].filter(Boolean)
+    console.log('[DEBUG] jsBundles:', jsBundles)
 
     // Get streaming configuration
     const streamingConfig = getStreamingConfig()

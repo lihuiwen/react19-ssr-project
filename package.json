@@ -7,8 +7,8 @@
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "dev": "tsx src/cli/dev.ts",
-    "build": "tsx src/cli/build.ts",
-    "start": "node dist/server/server.js"
+    "build": "NODE_ENV=production tsx src/cli/build.ts",
+    "start": "NODE_ENV=production node dist/server/server.js"
   },
   "keywords": [
     "react",

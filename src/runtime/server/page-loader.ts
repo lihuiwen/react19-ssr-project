@@ -1,32 +1,61 @@
 /**
  * Page Loader (Server-side)
- * Loads page components using Node.js require() with dynamic paths
+ * Loads page components with support for both development (HMR) and production
  *
- * Note: require.context is Webpack-only and can't be used on server.
- * Server uses direct require() with file paths.
+ * - Production: Static imports (compiled by webpack)
+ * - Development: Dynamic require() for hot reload support
  */
 
 import path from 'path'
+
+// Production: Static imports (will be compiled by webpack)
+// These imports are only used in production mode
+const pageComponents: Record<string, any> = {
+  'index.tsx': require('../../../examples/basic/pages/index').default,
+  'about.tsx': require('../../../examples/basic/pages/about').default,
+  'App.tsx': require('../../../examples/basic/pages/App').default,
+  'blog/[id].tsx': require('../../../examples/basic/pages/blog/[id]').default,
+  'products.tsx': require('../../../examples/basic/pages/products').default,
+}
 
 // Cache for loaded components (for performance and HMR)
 const componentCache = new Map<string, any>()
 
 /**
- * Get page component by file path using Node.js require()
+ * Get page component by file path
+ * - Production: Uses pre-compiled static imports
+ * - Development: Uses dynamic require() for HMR support
  * @param filePath - Route file path (e.g., 'blog/[id].tsx')
- * @param pagesDir - Absolute path to pages directory
+ * @param pagesDir - Absolute path to pages directory (only used in development)
  * @returns React component (default export)
  * @throws Error if component not found
  */
-export function getPageComponent(filePath: string, pagesDir: string): any {
+export function getPageComponent(filePath: string, pagesDir?: string): any {
+  // Production mode: Use static imports (compiled by webpack)
+  if (process.env.NODE_ENV === 'production') {
+    const component = pageComponents[filePath]
+
+    if (!component) {
+      throw new Error(
+        `Page component not found: ${filePath}\n` +
+        `Available components: ${Object.keys(pageComponents).join(', ')}`
+      )
+    }
+
+    return component
+  }
+
+  // Development mode: Use dynamic require() for HMR
+  if (!pagesDir) {
+    throw new Error('pagesDir is required in development mode')
+  }
+
   try {
     // Construct absolute path to component
     const absolutePath = path.resolve(pagesDir, filePath)
 
-    // Remove from cache in development for hot reload
-    if (process.env.NODE_ENV === 'development') {
-      delete require.cache[require.resolve(absolutePath)]
-    }
+    // Remove from cache for hot reload
+    delete require.cache[require.resolve(absolutePath)]
 
     // Load the module
     const module = require(absolutePath)

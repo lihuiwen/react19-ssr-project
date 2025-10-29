@@ -7,7 +7,7 @@ import Koa from 'koa'
 import serve from 'koa-static'
 import path from 'path'
 import { createContextMiddleware } from '../runtime/server/middleware/context'
-import { renderPageWithRouter, renderPageWithRouterStreaming } from '../runtime/server/render'
+import { renderPageWithRouterStreaming } from '../runtime/server/render'
 import { loadRoutes, RouteObject } from '../build/route-scanner'
 import React from 'react'
 
@@ -15,9 +15,10 @@ const app = new Koa()
 
 // Configuration
 const PORT = process.env.PORT || 3000
-const STATIC_DIR = path.resolve(__dirname, '../../dist/client')
+// In production: dist/server/server.js -> ../client -> dist/client
+const STATIC_DIR = path.resolve(__dirname, '../client')
 const PAGES_DIR = path.resolve(__dirname, '../../examples/basic/pages')
-const ROUTES_JSON = path.resolve(__dirname, '../../dist/.routes.json')
+const ROUTES_JSON = path.resolve(__dirname, '../.routes.json')
 
 // Load routes
 let routes: RouteObject[] = []
@@ -67,21 +68,10 @@ app.use(async (ctx) => {
     return
   }
 
-  // Check if streaming is enabled (default: true)
-  const useStreaming = process.env.DISABLE_STREAMING !== 'true'
-
   try {
-    if (useStreaming) {
-      // Use streaming SSR (Phase 3)
-      await renderPageWithRouterStreaming(ctx, routes, PAGES_DIR)
-      // Response is handled by streaming - no need to set ctx.body
-    } else {
-      // Fallback to static SSR (Phase 2.5)
-      const result = await renderPageWithRouter(ctx, routes, PAGES_DIR)
-      ctx.status = result.status
-      ctx.type = 'text/html'
-      ctx.body = result.html
-    }
+    // Use streaming SSR (Phase 3)
+    await renderPageWithRouterStreaming(ctx, routes, PAGES_DIR)
+    // Response is handled by streaming - no need to set ctx.body
   } catch (error: any) {
     console.error('[SSR] Render error:', error)
 

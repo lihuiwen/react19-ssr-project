@@ -452,31 +452,28 @@ pnpm start
 
 ### Streaming SSR Configuration (Phase 3+)
 
-The framework supports both streaming and static SSR modes:
+The framework uses **streaming SSR by default** for optimal performance:
 
 ```bash
 # Default: Streaming SSR enabled (Node.js renderToPipeableStream)
 pnpm start
 
-# Disable streaming SSR (fallback to renderToString)
-DISABLE_STREAMING=true pnpm start
-
 # Force specific runtime
-SSR_RUNTIME=node pnpm start    # Use Node.js renderToPipeableStream
+SSR_RUNTIME=node pnpm start    # Use Node.js renderToPipeableStream (default)
 SSR_RUNTIME=edge pnpm start    # Use Edge Runtime renderToReadableStream
 
-# Combined configuration
+# Production build with edge runtime
 SSR_RUNTIME=edge NODE_ENV=production pnpm start
 ```
 
 **Environment Variables**:
-- `DISABLE_STREAMING`: Set to `true` to use legacy `renderToString` instead of streaming
 - `SSR_RUNTIME`: Force runtime detection (`node` | `edge` | `auto` [default])
 - `NODE_ENV`: Set to `production` for optimized builds
 
 **Performance**:
-- Streaming SSR: TTFB ~120ms, Shell ready ~115ms
-- Static SSR: TTFB ~200ms (entire HTML in single response)
+- TTFB: ~120ms
+- Shell ready: ~115ms
+- Complete render: ~184ms
 
 ## Implementation Guidelines
 

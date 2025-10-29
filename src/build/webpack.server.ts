@@ -58,6 +58,7 @@ const serverConfig: Configuration = {
   plugins: [
     // Define environment variables
     new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
       'process.env.RUNTIME': JSON.stringify('server'),
       __IS_SERVER__: JSON.stringify(true),
     }),

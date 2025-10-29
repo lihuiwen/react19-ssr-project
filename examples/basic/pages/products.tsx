@@ -12,6 +12,7 @@
 import React, { Suspense, use } from 'react'
 import { Link } from 'react-router-dom'
 import { mockData } from '../../../src/runtime/shared/data-fetching'
+import { createCachedResource } from '../../../src/runtime/shared/resource'
 import { ErrorBoundary } from '../../../src/runtime/shared/error-boundary'
 
 // Mock product interface
@@ -69,14 +70,29 @@ function fetchProducts(): Promise<Product[]> {
 }
 
 /**
+ * Create cached resource for products
+ * This ensures the Promise reference is stable across re-renders
+ * Cache key: 'products' with 5-minute TTL
+ *
+ * TODO: Consider extracting cache keys to a centralized enum to prevent conflicts
+ * across different pages (e.g., CacheKeys.PRODUCTS_LIST)
+ */
+const productsResource = createCachedResource(
+  'products', // TODO: Replace with enum key to avoid potential conflicts
+  fetchProducts,
+  { ttl: 5 * 60 * 1000 } // 5 minutes cache
+)
+
+/**
  * Products List Component (uses use() Hook)
  *
  * This component will suspend during data fetching.
  * React will show the Suspense fallback until data is ready.
  */
 function ProductsList() {
-  // React 19 use() Hook - suspends while promise is pending
-  const products = use(fetchProducts())
+  // React 19 use() Hook - uses cached resource promise
+  // This ensures the Promise reference is stable across re-renders
+  const products = use(productsResource.promise)
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
