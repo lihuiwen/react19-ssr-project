@@ -44,7 +44,6 @@ export function renderToNodeStream(
         // Shell is ready - send initial HTML
         ctx.status = didError ? 500 : 200
         ctx.type = 'text/html'
-        ctx.set('Transfer-Encoding', 'chunked')
 
         // Create a writable stream that writes to Koa response
         const stream = new Writable({

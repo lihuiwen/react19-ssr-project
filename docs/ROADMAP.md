@@ -522,11 +522,14 @@ examples/basic/
 
 - `src/build/route-scanner.ts` ✅ 路由扫描器
 - `src/runtime/server/router.ts` ✅ 服务端路由匹配器
+- `src/runtime/server/page-loader.ts` ✅ 页面组件加载器（详见 [PAGE_LOADER.md](./PAGE_LOADER.md)）
 - `src/runtime/client/router.tsx` ✅ 客户端路由器
 - `src/runtime/client/Link.tsx` ✅ Link 组件
 - `src/runtime/shared/route-context.tsx` ✅ 路由上下文
 - `examples/basic/pages/about.tsx` ✅ 静态路由示例
 - `examples/basic/pages/blog/[id].tsx` ✅ 动态路由示例
+
+> **技术亮点**：页面组件加载采用双模式架构，通过 Webpack 插件自动生成映射表，开发环境支持 HMR，生产环境零文件 I/O。详见 [Page Loader 架构设计](./PAGE_LOADER.md)
 
 ---
 
@@ -2093,6 +2096,22 @@ export default {
 - Firefox ≥ 88
 - Safari ≥ 14
 - Node.js ≥ 18
+
+---
+
+## 相关技术文档
+
+本项目的核心技术架构已沉淀为独立的技术文档，便于深入学习和参考：
+
+- **[HMR.md](./HMR.md)** - 双服务器 HMR 架构详解
+  - HMR Server (Port 3001) + SSR Server (Port 3000) 分离设计
+  - React Fast Refresh 集成方案
+  - 故障排除和性能优化指南
+
+- **[PAGE_LOADER.md](./PAGE_LOADER.md)** - 页面组件加载系统
+  - Webpack 插件自动生成组件映射表
+  - 双模式加载：开发 HMR vs 生产静态映射
+  - 零维护成本的自动化方案
 
 ---
 

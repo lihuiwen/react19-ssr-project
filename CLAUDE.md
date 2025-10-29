@@ -241,7 +241,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 2.5 | 9 | React Router v6 migration | ✅ Completed |
 | 3 | 10 | **Streaming SSR** (core feature) | ✅ Completed |
 | 4 | 11 | Data fetching with `use()` Hook | ✅ Completed |
-| 5 | 15-19 | HMR + React Fast Refresh | - |
+| 5 | 15-19 | HMR + React Fast Refresh | ✅ Completed |
 | 6 | 20-21 | Middleware system | - |
 | 7 | 22-24 | Error handling + DevTools | - |
 | 8 | 25-27 | CLI tools | - |
@@ -283,6 +283,11 @@ pages/blog/[id].tsx       → /blog/:id
 ```
 
 Route scanning happens at build time via `src/build/route-scanner.ts` and generates `.routes.json`.
+
+**Page Component Loading**: The framework uses a dual-mode loading system with automatic mapping generation via Webpack plugin. See [Page Loader Architecture](./docs/PAGE_LOADER.md) for details on:
+- Automatic component mapping generation (zero manual maintenance)
+- Development mode: Dynamic `require()` with HMR support
+- Production mode: Static mapping with zero file I/O (<0.1ms)
 
 ### React Router v6 Integration (Phase 2.5)
 
@@ -513,7 +518,8 @@ SSR_RUNTIME=edge NODE_ENV=production pnpm start
 ### File Naming Conventions
 
 - **Page components**: `pages/ComponentName.tsx` or `pages/[param].tsx`
-
+  - Automatically loaded via [Page Loader](./docs/PAGE_LOADER.md) system
+  - No manual registration required
 - **Build scripts**: `src/build/feature-name.ts`
 - **Runtime modules**: `src/runtime/{server|client|shared}/module-name.tsx`
 

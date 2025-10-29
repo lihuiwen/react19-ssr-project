@@ -47,7 +47,6 @@ export async function renderToWebStream(
     // Set headers
     ctx.status = 200
     ctx.type = 'text/html'
-    ctx.set('Transfer-Encoding', 'chunked')
 
     // Convert ReadableStream to Node.js readable stream for Koa
     const reader = stream.getReader()

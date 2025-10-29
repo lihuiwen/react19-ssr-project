@@ -10,48 +10,9 @@ import { injectScript, sanitizeJSON } from './security'
 import { ResponseHeaders } from './headers'
 import { renderStream, getStreamingConfig } from './streaming/adapter'
 import { serializeResources } from '../shared/resource'
+import { RequestContext } from 'types/framework'
 
-/**
- * Generate complete HTML document with SSR content
- */
-export function generateHTML(options: {
-  appHtml: string
-  initialData?: any
-  nonce: string
-  manifest: Record<string, string>
-}): string {
-  const { appHtml, initialData, nonce, manifest } = options
-
-  // Get CSS assets
-  const clientCss = manifest['client.css'] || '/client.css'
-
-  // Get all JS bundles in the correct order
-  // Order: react.js → vendors.js → client.js
-  const jsBundles = [
-    manifest['react.js'],
-    manifest['vendors.js'],
-    manifest['client.js'] || '/client.js',
-  ].filter(Boolean) // Remove undefined values
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>React 19 SSR Framework</title>
-  <link rel="stylesheet" href="${clientCss}">
-</head>
-<body>
-  <div id="root">${appHtml}</div>
-  ${
-    initialData
-      ? injectScript(`window.__INITIAL_DATA__ = ${sanitizeJSON(initialData)}`, { nonce })
-      : ''
-  }
-  ${jsBundles.map(src => injectScript('', { nonce, src, type: 'module' })).join('\n  ')}
-</body>
-</html>`
-}
+const isDev = process.env.NODE_ENV !== 'production'
 
 /**
  * Load webpack manifest.json
@@ -64,7 +25,7 @@ function loadManifest(): Record<string, string> {
 
     // Resolve manifest path relative to the server dist directory
     // In production: dist/server/server.js -> ../client/manifest.json -> dist/client/manifest.json
-    const manifestPath = path.resolve(__dirname, '../client/manifest.json')
+    const manifestPath = path.resolve(__dirname, isDev ? '../../../dist/client/manifest.json' : '../client/manifest.json')
     const manifestContent = fs.readFileSync(manifestPath, 'utf-8')
     const manifest = JSON.parse(manifestContent)
 
@@ -84,8 +45,6 @@ function loadManifest(): Record<string, string> {
  * Generate error page HTML
  */
 function generateErrorHTML(error: any, nonce: string): string {
-  const isDev = process.env.NODE_ENV !== 'production'
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -218,13 +177,12 @@ export async function renderPageWithRouterStreaming(
 
     // Load manifest for bootstrap scripts
     const manifest = loadManifest()
-    console.log('[DEBUG] Manifest contents:', manifest)
+
     const jsBundles = [
       manifest['react.js'],
       manifest['vendors.js'],
       manifest['client.js'] || '/client.js',
     ].filter(Boolean)
-    console.log('[DEBUG] jsBundles:', jsBundles)
 
     // Get streaming configuration
     const streamingConfig = getStreamingConfig()
@@ -264,6 +222,9 @@ export async function renderPageWithRouterStreaming(
 
     // Set response mode
     ctx.responseMode = 'stream'
+
+    const header = new ResponseHeaders(ctx as RequestContext)
+    header.applyAll()
 
     // Stream the response with callbacks
     await renderStream(app, ctx, {

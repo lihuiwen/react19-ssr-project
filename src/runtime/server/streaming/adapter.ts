@@ -26,6 +26,7 @@ export interface StreamingOptions {
 export function detectRuntime(): 'node' | 'edge' {
   // Check for Edge Runtime indicators
   if (
+    // @ts-ignore
     typeof EdgeRuntime !== 'undefined' ||
     // @ts-ignore
     typeof Deno !== 'undefined' ||
