@@ -14,6 +14,7 @@ import {
   createTsLoader,
   commonConfig,
 } from './webpack.common'
+import { PageComponentsGeneratorPlugin } from './plugins/page-components-generator'
 
 const serverConfig: Configuration = {
   ...commonConfig,
@@ -56,6 +57,13 @@ const serverConfig: Configuration = {
   },
 
   plugins: [
+    // Auto-generate page component mappings from .routes.json
+    new PageComponentsGeneratorPlugin({
+      routesJsonPath: path.resolve(DIST_DIR, '.routes.json'),
+      outputPath: path.resolve(SRC_DIR, 'runtime/server/page-loader.generated.ts'),
+      pagesDir: path.resolve(EXAMPLES_DIR, 'pages'),  // EXAMPLES_DIR already includes 'basic'
+    }),
+
     // Define environment variables
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
