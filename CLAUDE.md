@@ -70,7 +70,7 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 
 **Current Phase**: Phase 5 ✅ Completed (2025-10-28)
 
-**Next Phase**: Phase 6 - Middleware System
+**Next Phase**: Phase 7 - Error handling + DevTools (Phase 6 已跳过)
 
 Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-10, ~38 days).
 
@@ -186,7 +186,7 @@ app.use(createContextMiddleware())  // MUST be first
 app.use(otherMiddleware())          // All other middleware access ctx.security, ctx.trace, etc.
 ```
 
-### HMR Architecture (Phase 6)
+### HMR Architecture (Phase 5)
 
 The framework uses a **dual-server architecture** for Hot Module Replacement:
 
@@ -242,7 +242,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 3 | 10 | **Streaming SSR** (core feature) | ✅ Completed |
 | 4 | 11 | Data fetching with `use()` Hook | ✅ Completed |
 | 5 | 15-19 | HMR + React Fast Refresh | ✅ Completed |
-| 6 | 20-21 | Middleware system | - |
+| 6 | - | ~~Middleware system~~ | ⏭️ **已跳过** |
 | 7 | 22-24 | Error handling + DevTools | - |
 | 8 | 25-27 | CLI tools | - |
 | 9 | 28-29 | Basic performance optimization + docs | - |
@@ -259,7 +259,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - ✅ **Day 10**: 流式 SSR 完成 (Node.js + Edge Runtime)
 - ✅ **Day 11**: 数据获取集成 `use()` Hook (Phase 4 完成)
 - ✅ **Day 12**: HMR + React Fast Refresh 完成 (Phase 5 完成)
-- **Day 21**: 完整开发体验 (中间件系统)
+- ⏭️ **Phase 6 已跳过**: 中间件系统（Koa 原生中间件已足够）
 - **Day 27**: 生产可用 (CLI + 错误处理)
 - **Day 29**: 基础性能优化与文档
 - **Day 31**: SEO 优化完成（可选）
@@ -267,7 +267,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - **Day 37**: 国际化支持，可发布
 
 **Current Phase**: Phase 5 ✅ Completed - HMR + React Fast Refresh (2025-10-28)
-**Next Phase**: Phase 6 - Middleware System
+**Next Phase**: Phase 7 - Error handling + DevTools (Phase 6 已跳过)
 
 ## Key Design Decisions
 
@@ -377,24 +377,18 @@ The project uses **5 separate tsconfig files**:
 
 All configs extend the root and customize `module`, `lib`, and `types` fields.
 
-### Middleware System (Phase 7)
+### Middleware System
 
-Middleware can be defined in `middleware.ts`:
+**Note**: Phase 6 (Middleware System) 已跳过。框架使用 Koa 原生中间件系统，无需额外封装。
+
+用户可以在 `src/cli/server.ts` 中直接使用 Koa 中间件：
 
 ```typescript
-export const middleware: Middleware[] = [
-  // Simple middleware
-  async (ctx, next) => {
-    console.log(ctx.url)
-    await next()
-  },
-
-  // With matcher
-  {
-    matcher: /^\/admin/,
-    handler: async (ctx, next) => { /* ... */ }
-  }
-]
+// src/cli/server.ts
+app.use(async (ctx, next) => {
+  console.log(ctx.url)
+  await next()
+})
 ```
 
 ### Partial Pre-rendering (PPR) Configuration (Phase 10.5)

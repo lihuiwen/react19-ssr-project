@@ -111,7 +111,8 @@ react19-ssr-framework/
 ✅ Day 9:  迁移到 React Router v6 (Phase 2.5 完成)
 ✅ Day 10: 流式 SSR 完成 (Phase 3 完成)
 ✅ Day 11: 数据获取 use() Hook 完整 (Phase 4 完成)
-⏳ Day 21: 完整开发体验 (HMR + 中间件)
+✅ Day 12: HMR + React Fast Refresh 完成 (Phase 5 完成)
+⏭️ Phase 6: 中间件系统已跳过 (Koa 原生中间件已足够)
 ⏳ Day 27: 生产可用 (CLI + 错误处理)
 ⏳ Day 29: 基础性能优化与文档
 ⏳ Day 31: SEO 优化完成 (Phase 9.5)
@@ -1044,65 +1045,49 @@ HMR Server (Port 3001)          SSR Server (Port 3000)
 
 ---
 
-## Phase 6: 中间件系统 (Day 23-24)
+## Phase 6: 中间件系统 ⏭️ **已跳过**
 
-**目标：实现请求拦截和处理链**
+**状态：已跳过 (2025-10-31)**
 
-### 核心任务
+**跳过原因：**
+- Koa 原生中间件系统已经足够强大和灵活
+- 不需要额外的封装层，避免过度设计
+- 用户可以直接在 `src/cli/server.ts` 中使用 Koa 中间件
+- 保持框架简洁，专注于核心 SSR 功能
 
-#### 1. 中间件加载器
-- 读取 `middleware.ts`
-- 注册到 Koa
-- 支持条件匹配（matcher）
+### 替代方案
 
-#### 2. 内置中间件
-- Logger（请求日志）
-- CORS
-- Static（静态文件）
-
-#### 3. 中间件组合
-- 链式调用
-- 错误处理
-
-### 使用示例
+用户可以直接使用 Koa 中间件：
 
 ```typescript
-// middleware.ts
-export const middleware: Middleware[] = [
-  // 日志中间件
-  async (ctx, next) => {
-    const start = Date.now()
-    await next()
-    console.log(`${ctx.method} ${ctx.url} - ${Date.now() - start}ms`)
-  },
+// src/cli/server.ts
+import Koa from 'koa'
 
-  // 鉴权中间件
-  {
-    matcher: /^\/admin/,
-    handler: async (ctx, next) => {
-      if (!ctx.headers.authorization) {
-        ctx.status = 401
-        return
-      }
-      await next()
+const app = new Koa()
+
+// 日志中间件
+app.use(async (ctx, next) => {
+  const start = Date.now()
+  await next()
+  console.log(`${ctx.method} ${ctx.url} - ${Date.now() - start}ms`)
+})
+
+// 鉴权中间件
+app.use(async (ctx, next) => {
+  if (ctx.path.startsWith('/admin')) {
+    if (!ctx.headers.authorization) {
+      ctx.status = 401
+      return
     }
   }
-]
+  await next()
+})
+
+// SSR 渲染中间件
+app.use(ssrMiddleware)
 ```
 
-### 验收标准
-
-```bash
-✅ 自定义中间件生效
-✅ 能拦截特定路径
-✅ 中间件执行顺序正确
-✅ 错误中间件捕获异常
-```
-
-### 输出物
-
-- `src/runtime/server/middleware-loader.ts`
-- `src/runtime/server/built-in-middleware.ts`
+**结论：** 无需实现专用中间件系统，Koa 生态已满足需求。
 
 ---
 
