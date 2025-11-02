@@ -107,3 +107,14 @@ export function hideErrorOverlay() {
 export function getCurrentError(): Error | null {
   return currentError
 }
+
+/**
+ * HMR: Accept updates to this module without reloading the page
+ */
+if (typeof module !== 'undefined' && (module as any).hot) {
+  ;(module as any).hot.accept((err: any) => {
+    if (err) {
+      console.error('[ErrorOverlay] HMR Error:', err)
+    }
+  })
+}

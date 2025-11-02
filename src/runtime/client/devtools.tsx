@@ -99,14 +99,25 @@ export function DevTools() {
     if (typeof module !== 'undefined' && (module as any).hot) {
       const hot = (module as any).hot
 
-      hot.addStatusHandler((status: string) => {
-        setState((prev) => ({
-          ...prev,
-          hmrStatus: status as any,
-          hmrUpdateCount: status === 'apply' ? prev.hmrUpdateCount + 1 : prev.hmrUpdateCount,
-          lastUpdateTime: status === 'apply' ? Date.now() : prev.lastUpdateTime,
-        }))
-      })
+      const statusHandler = (status: string) => {
+        // Avoid updating state during HMR to prevent infinite loop
+        if (status === 'apply' || status === 'idle') {
+          setState((prev) => ({
+            ...prev,
+            hmrStatus: status as any,
+            hmrUpdateCount: status === 'apply' ? prev.hmrUpdateCount + 1 : prev.hmrUpdateCount,
+            lastUpdateTime: status === 'apply' ? Date.now() : prev.lastUpdateTime,
+          }))
+        }
+      }
+
+      hot.addStatusHandler(statusHandler)
+
+      // Cleanup: remove status handler when component unmounts
+      return () => {
+        // Note: Webpack HMR doesn't provide removeStatusHandler, so we can't clean up
+        // Instead, we limit updates to only 'apply' and 'idle' status
+      }
     }
   }, [])
 
@@ -296,4 +307,18 @@ export function trackHydrationTime(startTime: number): void {
   const hydrationTime = Date.now() - startTime
   ;(window as any).__HYDRATION_TIME__ = hydrationTime
   console.log(`[DevTools] Hydration completed in ${hydrationTime}ms`)
+}
+
+/**
+ * HMR: Accept updates to this module without reloading the page
+ * This prevents DevTools from triggering infinite HMR loops
+ */
+if (typeof module !== 'undefined' && (module as any).hot) {
+  ;(module as any).hot.accept((err: any) => {
+    if (err) {
+      console.error('[DevTools] HMR Error:', err)
+    } else {
+      console.log('[DevTools] Hot updated')
+    }
+  })
 }

@@ -66,3 +66,14 @@ export function setupHMRErrorHandling() {
     })
   }
 }
+
+/**
+ * HMR: Accept updates to this module without reloading the page
+ */
+if (typeof module !== 'undefined' && (module as any).hot) {
+  ;(module as any).hot.accept((err: any) => {
+    if (err) {
+      console.error('[ErrorHandler] HMR Error:', err)
+    }
+  })
+}
