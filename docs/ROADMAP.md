@@ -1091,42 +1091,60 @@ app.use(ssrMiddleware)
 
 ---
 
-## Phase 7: 错误处理 + DevTools (Day 25-27)
+## Phase 7: 错误处理 + DevTools (Day 25-27) ✅ **已完成**
 
 **目标：完善开发体验和错误提示**
 
+**状态：100% 完成 (Day 1-3 全部完成) - 2025-11-02**
+
 ### 核心任务
 
-#### 1. 错误边界
-- 全局 `ErrorBoundary`
-- 路由级错误边界
-- 开发/生产模式不同展示
+#### 1. 错误边界 ✅
+- ✅ 全局 `ErrorBoundary` (集成错误报告)
+- ✅ 路由级错误边界 (服务端 + 客户端自动包裹)
+- ✅ 开发/生产模式不同展示
 
-#### 2. DevTools
-- 路由信息面板
-- 数据获取状态
-- 性能指标（TTFB、FCP）
+#### 2. DevTools ✅
+- ✅ 性能指标（TTFB、FCP、LCP、Hydration）
+- ✅ HMR 状态显示（状态、更新次数、最后更新时间）
+- ✅ 错误计数统计
+- ✅ Framework 信息（React 版本、运行模式、SSR 类型）
+- ✅ 最小化/展开功能
 
-#### 3. 友好错误提示
-- 404 页面
-- 500 错误页面
-- Error Overlay（开发模式）
+#### 3. 友好错误提示 ✅
+- ✅ 404 页面 (支持自定义 `pages/404.tsx`)
+- ✅ 500 错误页面 (支持自定义 `pages/500.tsx`)
+- ✅ Error Overlay（开发模式，HMR 集成）
+- ✅ 全局错误处理 (window.onerror + unhandledrejection)
 
 ### 验收标准
 
 ```bash
-✅ 组件错误不崩溃整个应用
-✅ 开发模式显示详细堆栈
-✅ 生产模式显示友好错误页
-✅ DevTools 显示路由和性能数据
-✅ 404 页面可自定义
+✅ 组件错误不崩溃整个应用 (ErrorBoundary 自动包裹)
+✅ 开发模式显示详细堆栈 (Error Overlay + 错误详情)
+✅ 生产模式显示友好错误页 (隐藏堆栈信息)
+✅ DevTools 显示性能数据和 HMR 状态
+✅ 404 页面可自定义 (pages/404.tsx, pages/500.tsx)
+✅ 错误日志上报接口 (ErrorReporter 抽象 + Console 实现)
 ```
 
 ### 输出物
 
-- `src/runtime/shared/error-boundary.tsx`
+#### ✅ 已完成
+- `src/runtime/shared/error-boundary.tsx` (更新集成错误报告)
+- `src/runtime/shared/error-pages/NotFound.tsx`
+- `src/runtime/shared/error-pages/ServerError.tsx`
+- `src/runtime/shared/error-reporting.ts`
+- `src/runtime/server/middleware/error-handler.ts`
+- `src/runtime/client/error-overlay.tsx`
+- `src/runtime/client/error-overlay.css`
+- `src/runtime/client/error-handler.ts`
 - `src/runtime/client/devtools.tsx`
-- `src/runtime/shared/error-pages.tsx`
+- `src/runtime/client/devtools.css`
+
+### 实施详情
+
+参见 `docs/ERROR_HANDLING.md` 获取完整的架构设计和实施进度。
 
 ---
 

@@ -1,0 +1,177 @@
+/**
+ * DevTools Panel Styles (Phase 7 - Day 3)
+ */
+
+.devtools-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 380px;
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid rgba(75, 85, 99, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  color: #f3f4f6;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  z-index: 99999;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+}
+
+.devtools-panel.minimized {
+  width: 250px;
+}
+
+/* Header */
+.devtools-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(31, 41, 55, 0.8);
+  border-bottom: 1px solid rgba(75, 85, 99, 0.5);
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.devtools-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.devtools-icon {
+  font-size: 16px;
+}
+
+.devtools-toggle {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.devtools-toggle:hover {
+  background: rgba(75, 85, 99, 0.3);
+  color: #f3f4f6;
+}
+
+/* Content */
+.devtools-content {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.devtools-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.devtools-content::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.5);
+}
+
+.devtools-content::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.5);
+  border-radius: 3px;
+}
+
+.devtools-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+/* Section */
+.devtools-section {
+  margin-bottom: 16px;
+}
+
+.devtools-section:last-child {
+  margin-bottom: 0;
+}
+
+.devtools-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+/* Metrics Grid */
+.devtools-metrics,
+.devtools-hmr,
+.devtools-errors,
+.devtools-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.devtools-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(31, 41, 55, 0.5);
+  border-radius: 6px;
+  border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.metric-label {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f3f4f6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Single-column metrics */
+.devtools-errors .devtools-metric,
+.devtools-hmr .devtools-metric:first-child {
+  grid-column: 1 / -1;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.devtools-panel[data-updating='true'] {
+  animation: pulse 0.3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .devtools-panel {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .devtools-panel.minimized {
+    width: auto;
+  }
+}

@@ -1,11 +1,13 @@
 /**
- * Error Boundary Component (Phase 4)
+ * Error Boundary Component (Phase 4 + Phase 7)
  *
  * Catches errors in data fetching and component rendering.
  * Provides different UI for development and production environments.
+ * Integrates with error reporting system (Phase 7).
  */
 
 import React, { Component, ReactNode } from 'react'
+import { captureException } from './error-reporting'
 
 export interface ErrorBoundaryProps {
   /** Fallback UI to show when an error occurs */
@@ -73,8 +75,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       this.props.onError(error, errorInfo)
     }
 
-    // In production, you might want to send error to logging service
-    // e.g., Sentry, LogRocket, etc.
+    // Report error to error reporting service (Phase 7)
+    captureException(error, {
+      extra: {
+        componentStack: errorInfo.componentStack,
+      },
+      tags: {
+        errorBoundary: 'true',
+      },
+    })
   }
 
   retry = () => {

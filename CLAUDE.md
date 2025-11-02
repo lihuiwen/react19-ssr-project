@@ -68,9 +68,21 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 - Graceful shutdown handling to prevent port conflicts
 - See `docs/HMR.md` for detailed architecture documentation
 
-**Current Phase**: Phase 5 ✅ Completed (2025-10-28)
+**Error Handling & DevTools (Phase 7 已完成 - 2025-11-02)**:
+- 404/500 error pages with custom support
+- Global error handling middleware with inline CSS
+- Error Overlay for development (ESC to close, HMR integration)
+- ErrorBoundary with error reporting integration
+- Route-level automatic error boundary wrapping
+- Error reporting interface (ErrorReporter abstraction)
+- Client-side global error handlers (window.onerror + unhandledrejection)
+- DevTools panel with performance metrics (TTFB, FCP, LCP, Hydration)
+- HMR status monitoring (status, update count, last update time)
+- Error count tracking and Framework info display
 
-**Next Phase**: Phase 7 - Error handling + DevTools (Phase 6 已跳过)
+**Current Phase**: Phase 7 ✅ Completed (100% completed - All 3 days done, 2025-11-02)
+
+**Next Phase**: Phase 8 - CLI Tools (Phase 6 skipped)
 
 Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-10, ~38 days).
 
@@ -243,7 +255,7 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 4 | 11 | Data fetching with `use()` Hook | ✅ Completed |
 | 5 | 15-19 | HMR + React Fast Refresh | ✅ Completed |
 | 6 | - | ~~Middleware system~~ | ⏭️ **已跳过** |
-| 7 | 22-24 | Error handling + DevTools | - |
+| 7 | 22-24 | Error handling + DevTools | 🚧 **进行中** (67%) |
 | 8 | 25-27 | CLI tools | - |
 | 9 | 28-29 | Basic performance optimization + docs | - |
 | 9.5 | 30-31 | **SEO Optimization** (optional) | - |
@@ -260,14 +272,15 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 - ✅ **Day 11**: 数据获取集成 `use()` Hook (Phase 4 完成)
 - ✅ **Day 12**: HMR + React Fast Refresh 完成 (Phase 5 完成)
 - ⏭️ **Phase 6 已跳过**: 中间件系统（Koa 原生中间件已足够）
-- **Day 27**: 生产可用 (CLI + 错误处理)
+- ✅ **Phase 7 完成** (2025-11-02): 错误处理 + DevTools (All 3 days completed)
+  - ✅ 404/500 错误页面 + 全局错误处理中间件
+  - ✅ Error Overlay + ErrorBoundary + 错误报告接口
+  - ✅ DevTools 面板 (性能指标 + HMR 状态 + 错误计数)
+- **Day 27**: 生产可用 (CLI + 错误处理) ← **下一步**
 - **Day 29**: 基础性能优化与文档
 - **Day 31**: SEO 优化完成（可选）
 - **Day 34**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 37**: 国际化支持，可发布
-
-**Current Phase**: Phase 5 ✅ Completed - HMR + React Fast Refresh (2025-10-28)
-**Next Phase**: Phase 7 - Error handling + DevTools (Phase 6 已跳过)
 
 ## Key Design Decisions
 

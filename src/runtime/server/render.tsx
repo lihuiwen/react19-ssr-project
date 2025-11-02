@@ -11,6 +11,7 @@ import { ResponseHeaders } from './headers'
 import { renderStream, getStreamingConfig } from './streaming/adapter'
 import { serializeResources } from '../shared/resource'
 import { RequestContext } from 'types/framework'
+import { ErrorBoundary } from '../shared/error-boundary'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
@@ -117,9 +118,18 @@ async function enhanceRoutesWithComponents(routeObjects: any[], pagesDir: string
       }
     }
 
+    // Wrap component with ErrorBoundary (Phase 7)
     return {
       ...rest,
-      element: <Component />,
+      element: (
+        <ErrorBoundary
+          onError={(error, errorInfo) => {
+            console.error(`[Route Error] ${route.path || route.id}`, error, errorInfo)
+          }}
+        >
+          <Component />
+        </ErrorBoundary>
+      ),
     }
   })
 }
@@ -159,7 +169,9 @@ export async function renderPageWithRouterStreaming(
       const status = context.status
 
       if (status === 404) {
-        throw new Error('404: Route not found')
+        // Set 404 status and let error handler middleware render the page
+        ctx.status = 404
+        return
       }
 
       if (status >= 300 && status < 400) {
@@ -170,6 +182,22 @@ export async function renderPageWithRouterStreaming(
       }
 
       throw new Error(`Unexpected response status: ${status}`)
+    }
+
+    // Check for errors in the router context
+    const hasErrors = context.errors && Object.keys(context.errors).length > 0
+    if (hasErrors) {
+      const firstError = Object.values(context.errors)[0]
+
+      // Check if it's a 404 error
+      if (firstError && typeof firstError === 'object' && 'status' in firstError && firstError.status === 404) {
+        ctx.status = 404
+        return
+      }
+
+      // Other errors - throw to be caught by error handler
+      console.error('[SSR] Router context has errors:', context.errors)
+      throw new Error('Router error: ' + JSON.stringify(context.errors))
     }
 
     // Create static router with the context

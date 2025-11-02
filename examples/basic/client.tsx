@@ -1,5 +1,5 @@
 /**
- * Client Entry Point (Phase 5 - HMR Support)
+ * Client Entry Point (Phase 5 - HMR Support + Phase 7 - Error Handling)
  * Hydrates the server-rendered React app using React Router v6
  * Supports Hot Module Replacement in development
  */
@@ -9,7 +9,19 @@ import { hydrateRoot } from 'react-dom/client'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { hydrateResources } from '../../src/runtime/shared/resource'
+import { setupGlobalErrorHandlers, setupHMRErrorHandling } from '../../src/runtime/client/error-handler'
+import { ErrorBoundary } from '../../src/runtime/shared/error-boundary'
+import { showDevTools, trackHydrationTime } from '../../src/runtime/client/devtools'
 import './styles/global.css'
+
+// Setup global error handling (Phase 7)
+setupGlobalErrorHandlers()
+setupHMRErrorHandling()
+
+// Show DevTools in development mode (Phase 7)
+if (process.env.NODE_ENV !== 'production') {
+  showDevTools()
+}
 
 // Get root element
 const rootElement = document.getElementById('root')
@@ -79,7 +91,7 @@ function createRoutes() {
   const componentRegistry = getComponentRegistry()
 
   return serverRoutes.map((route: any) => {
-    const { filePath, ...rest } = route
+    const { filePath, ...rest} = route
 
     if (!filePath) {
       return rest
@@ -93,9 +105,18 @@ function createRoutes() {
       return rest
     }
 
+    // Wrap component with ErrorBoundary (Phase 7)
     return {
       ...rest,
-      element: <Component />,
+      element: (
+        <ErrorBoundary
+          onError={(error, errorInfo) => {
+            console.error(`[Route Error] ${route.path || route.id}`, error, errorInfo)
+          }}
+        >
+          <Component />
+        </ErrorBoundary>
+      ),
     }
   })
 }
@@ -129,9 +150,13 @@ function render() {
   // First load: hydrate
   // HMR updates: render
   if (!isHydrated && rootElement) {
+    const hydrationStart = Date.now()
     console.log('[Client] Hydrating...')
     hydrateRoot(rootElement, <App />)
     isHydrated = true
+
+    // Track hydration time for DevTools (Phase 7)
+    trackHydrationTime(hydrationStart)
   } else if (rootElement) {
     console.log('🔥 Hot Module Replacement triggered')
     const root = createRoot(rootElement)
