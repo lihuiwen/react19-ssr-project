@@ -113,11 +113,12 @@ react19-ssr-framework/
 ✅ Day 11: 数据获取 use() Hook 完整 (Phase 4 完成)
 ✅ Day 12: HMR + React Fast Refresh 完成 (Phase 5 完成)
 ⏭️ Phase 6: 中间件系统已跳过 (Koa 原生中间件已足够)
-⏳ Day 27: 生产可用 (CLI + 错误处理)
-⏳ Day 29: 基础性能优化与文档
+✅ Day 24: 错误处理 + DevTools 完成 (Phase 7 完成 - 2025-11-02)
+✅ Day 27: CLI 工具完成 (Phase 8 完成 - 2025-11-05, 含 create 命令)
+⏳ Day 29: 基础性能优化与文档 (Phase 9)
 ⏳ Day 31: SEO 优化完成 (Phase 9.5)
-⏳ Day 34: PPR 极致性能优化 (TTFB < 50ms)
-⏳ Day 37: 国际化支持，可发布
+⏳ Day 34: PPR 极致性能优化 (TTFB < 50ms, Phase 10)
+⏳ Day 37: 国际化支持，可发布 (Phase 11)
 ```
 
 ---
@@ -1152,16 +1153,16 @@ app.use(ssrMiddleware)
 
 **目标：完善命令行工具**
 
-**完成时间**: 2025-11-04 (Day 1-2 completed)
-**实际耗时**: 2 天（比计划提前 1 天）
+**完成时间**: 2025-11-05 (Day 1-3 completed)
+**实际耗时**: 3 天（完整实施，包含 create 命令）
 
 ### 核心任务
 
 #### 1. 命令实现
-- `dev`（开发服务器）
-- `build`（生产构建）
-- `start`（启动生产服务器）
-- `create`（创建新项目）
+- `dev`（开发服务器）✅
+- `build`（生产构建）✅
+- `start`（启动生产服务器）✅
+- `create`（创建新项目）✅ **新增 2025-11-05**
 
 #### 2. 配置文件
 - `app.config.ts`（用户配置）
@@ -1196,6 +1197,15 @@ app.use(ssrMiddleware)
 - ✅ `dev` 命令：端口检查 + 路由扫描 + 彩色输出 + 优雅关闭
 - ✅ `build` 命令：进度显示 + 文件大小统计 + 构建时间
 - ✅ `start` 命令：构建文件检查 + 端口验证 + 优雅关闭
+- ✅ `create` 命令（2025-11-05 新增）：
+  - 交互式项目创建（inquirer）
+  - 包管理器选择（pnpm/npm/yarn）
+  - 模板系统（templates/basic/）
+  - 自动依赖安装
+  - Git 仓库初始化
+  - package.json 变量替换
+  - --no-install 和 --no-git 选项
+  - 完整的错误处理和友好提示
 - ✅ `--help` 和 `--version` 支持
 - ✅ Bin 入口（支持全局安装）
 
@@ -1206,21 +1216,77 @@ src/cli/
 ├── commands/             # 命令实现
 │   ├── dev.ts           # dev 命令
 │   ├── build.ts         # build 命令
-│   └── start.ts         # start 命令
+│   ├── start.ts         # start 命令
+│   └── create.ts        # create 命令（新增 2025-11-05）
 └── utils/               # 工具函数
     ├── logger.ts        # 日志系统（chalk + ora）
     ├── error.ts         # 错误处理
     ├── port.ts          # 端口检查
     └── format.ts        # 格式化工具
+
+templates/               # 项目模板（新增 2025-11-05）
+└── basic/               # 基础模板
+    ├── package.json     # 模板配置（PROJECT_NAME 占位符）
+    ├── tsconfig.json    # TypeScript 配置
+    ├── .gitignore       # Git 忽略规则
+    ├── README.md        # 项目说明
+    ├── pages/           # 页面目录
+    │   ├── index.tsx    # 首页
+    │   ├── about.tsx    # 关于页
+    │   └── blog/
+    │       └── [id].tsx # 动态路由示例
+    └── styles/
+        └── global.css   # 全局样式
 ```
 
 ### 输出物
 
-- `src/cli/dev.ts`
-- `src/cli/build.ts`
-- `src/cli/start.ts`
-- `src/cli/create.ts`
-- `src/cli/utils/logger.ts`
+**Day 1-2 (2025-11-04)**:
+- `src/cli/index.ts` - CLI 入口和命令注册
+- `src/cli/commands/dev.ts` - 开发服务器命令
+- `src/cli/commands/build.ts` - 生产构建命令
+- `src/cli/commands/start.ts` - 生产服务器命令
+- `src/cli/utils/logger.ts` - 日志系统
+- `src/cli/utils/error.ts` - 错误处理
+- `src/cli/utils/port.ts` - 端口检查
+- `src/cli/utils/format.ts` - 格式化工具
+
+**Day 3 (2025-11-05) - Create 命令实施**:
+- `src/cli/commands/create.ts` - 项目脚手架命令（150+ 行）
+- `templates/basic/` - 完整项目模板（7个文件）
+  - package.json, tsconfig.json, .gitignore
+  - pages/index.tsx, pages/about.tsx, pages/blog/[id].tsx
+  - styles/global.css
+- 错误类型扩展（DIRECTORY_EXISTS, TEMPLATE_NOT_FOUND, INVALID_PROJECT_NAME）
+
+### 使用示例
+
+```bash
+# 创建新项目（交互式）
+react19-ssr create my-awesome-app
+? Select a package manager: pnpm (recommended)
+? Install dependencies now? Yes
+? Initialize git repository? Yes
+
+# 跳过依赖安装和 Git 初始化
+react19-ssr create my-app --no-install --no-git
+
+# 查看帮助
+react19-ssr create --help
+
+# 其他命令
+react19-ssr dev --port 4000
+react19-ssr build --analyze
+react19-ssr start
+```
+
+### 技术亮点
+
+1. **交互式体验**：inquirer 实现友好的命令行交互
+2. **模板系统**：完整的项目结构，开箱即用
+3. **智能安装**：自动检测包管理器并安装依赖
+4. **美化输出**：Spinner 动画 + 彩色日志 + 进度提示
+5. **错误处理**：友好的错误提示和解决方案
 
 ---
 

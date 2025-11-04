@@ -57,11 +57,28 @@ program
     }
   })
 
+// Create command
+program
+  .command('create <project-name>')
+  .description('Create a new React 19 SSR project')
+  .option('-t, --template <template>', 'Template name', 'basic')
+  .option('--no-install', 'Skip dependency installation')
+  .option('--no-git', 'Skip git initialization')
+  .action(async (projectName, options) => {
+    try {
+      const { createCommand } = await import('./commands/create')
+      await createCommand(projectName, options)
+    } catch (error) {
+      handleError(error as Error)
+    }
+  })
+
 // Add help text
 program.addHelpText(
   'after',
   `
 Examples:
+  $ react19-ssr create my-app
   $ react19-ssr dev
   $ react19-ssr dev --port 4000 --open
   $ react19-ssr build --analyze

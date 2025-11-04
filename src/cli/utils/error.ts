@@ -24,7 +24,7 @@ export function handleError(error: Error | CLIError): never {
     logger.error(error.message)
     if (error.hint) {
       console.log()
-      logger.info('=� Hint: ' + error.hint)
+      logger.info('=� Hint: ' + error.hint)
     }
   } else {
     logger.error('Unexpected error occurred')
@@ -113,5 +113,37 @@ Troubleshooting:
       `Build output not found in "${outDir}"`,
       'BUILD_OUTPUT_NOT_FOUND',
       'Run "pnpm build" first before starting production server'
+    ),
+
+  /**
+   * Directory already exists error
+   */
+  DIRECTORY_EXISTS: (dir: string) =>
+    new CLIError(
+      `Directory "${dir}" already exists`,
+      'DIRECTORY_EXISTS',
+      `Try:
+  • Remove the directory: rm -rf ${dir}
+  • Use a different project name`
+    ),
+
+  /**
+   * Template not found error
+   */
+  TEMPLATE_NOT_FOUND: (template: string) =>
+    new CLIError(
+      `Template "${template}" not found`,
+      'TEMPLATE_NOT_FOUND',
+      'Available templates: basic'
+    ),
+
+  /**
+   * Invalid project name error
+   */
+  INVALID_PROJECT_NAME: () =>
+    new CLIError(
+      'Project name is required',
+      'INVALID_PROJECT_NAME',
+      'Usage: react19-ssr create <project-name>'
     ),
 }

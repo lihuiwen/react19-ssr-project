@@ -80,11 +80,17 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 - HMR status monitoring (status, update count, last update time)
 - Error count tracking and Framework info display
 
-**CLI Tools (Phase 8 已完成 - 2025-11-04)**:
+**CLI Tools (Phase 8 已完成 - 2025-11-05)**:
 - Commander.js-based CLI framework with professional UX
 - Enhanced `dev` command with port checking and beautiful output
 - Enhanced `build` command with file size statistics and progress display
 - Enhanced `start` command with build verification and graceful shutdown
+- **🆕 `create` command** - Project scaffolding tool (2025-11-05)
+  - Interactive prompts (package manager, dependencies, git init)
+  - Template system with complete project structure
+  - Automatic package.json variable replacement
+  - Support for --no-install and --no-git flags
+  - Beautiful CLI output with spinners and progress
 - Logger system with colored output (chalk) and spinner animations (ora)
 - Error handling with friendly hints and solutions
 - Port availability checker and conflict detection
@@ -92,7 +98,7 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 - Complete `--help` and `--version` support
 - Bin entry for global CLI installation
 
-**Current Phase**: Phase 8 ✅ Completed (100% completed - Day 1-2 done, 2025-11-04)
+**Current Phase**: Phase 8 ✅ Completed (100% completed - Day 1-3 done, 2025-11-05)
 
 **Next Phase**: Phase 9 - Performance Optimization + Documentation
 
