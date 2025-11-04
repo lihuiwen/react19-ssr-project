@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "description": "A React 19 SSR framework with streaming support and edge runtime compatibility",
   "type": "commonjs",
+  "bin": {
+    "react19-ssr": "./dist/cli/index.js"
+  },
   "scripts": {
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
-    "dev": "tsx src/cli/dev.ts",
-    "build": "NODE_ENV=production tsx src/cli/build.ts",
-    "start": "NODE_ENV=production node dist/server/server.js"
+    "dev": "tsx src/cli/index.ts dev",
+    "build": "NODE_ENV=production tsx src/cli/index.ts build",
+    "start": "NODE_ENV=production node dist/server/server.js",
+    "start:cli": "NODE_ENV=production tsx src/cli/index.ts start"
   },
   "keywords": [
     "react",
@@ -42,6 +46,8 @@
     "@types/webpack-hot-middleware": "^2.25.12",
     "@types/webpack-node-externals": "^3.0.4",
     "autoprefixer": "^10.4.16",
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
     "cors": "^2.8.5",
     "css-loader": "^7.1.2",
     "eslint": "^8.55.0",
@@ -51,6 +57,7 @@
     "mini-css-extract-plugin": "^2.9.4",
     "nodemon": "^3.1.10",
     "null-loader": "^4.0.1",
+    "ora": "^5.4.1",
     "postcss": "^8.4.32",
     "postcss-loader": "^8.2.0",
     "prettier": "^3.1.1",

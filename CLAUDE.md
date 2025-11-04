@@ -80,9 +80,21 @@ This is a **greenfield project** with **Phase 0 (project initialization)**, **Ph
 - HMR status monitoring (status, update count, last update time)
 - Error count tracking and Framework info display
 
-**Current Phase**: Phase 7 ✅ Completed (100% completed - All 3 days done, 2025-11-02)
+**CLI Tools (Phase 8 已完成 - 2025-11-04)**:
+- Commander.js-based CLI framework with professional UX
+- Enhanced `dev` command with port checking and beautiful output
+- Enhanced `build` command with file size statistics and progress display
+- Enhanced `start` command with build verification and graceful shutdown
+- Logger system with colored output (chalk) and spinner animations (ora)
+- Error handling with friendly hints and solutions
+- Port availability checker and conflict detection
+- Format utilities for file sizes and durations
+- Complete `--help` and `--version` support
+- Bin entry for global CLI installation
 
-**Next Phase**: Phase 8 - CLI Tools (Phase 6 skipped)
+**Current Phase**: Phase 8 ✅ Completed (100% completed - Day 1-2 done, 2025-11-04)
+
+**Next Phase**: Phase 9 - Performance Optimization + Documentation
 
 Reference `docs/ROADMAP.md` for the complete implementation plan (Phase 0-10, ~38 days).
 
@@ -255,8 +267,8 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
 | 4 | 11 | Data fetching with `use()` Hook | ✅ Completed |
 | 5 | 15-19 | HMR + React Fast Refresh | ✅ Completed |
 | 6 | - | ~~Middleware system~~ | ⏭️ **已跳过** |
-| 7 | 22-24 | Error handling + DevTools | 🚧 **进行中** (67%) |
-| 8 | 25-27 | CLI tools | - |
+| 7 | 22-24 | Error handling + DevTools | ✅ Completed |
+| 8 | 25-27 | CLI tools | ✅ Completed |
 | 9 | 28-29 | Basic performance optimization + docs | - |
 | 9.5 | 30-31 | **SEO Optimization** (optional) | - |
 | 10 | 32-34 | **Partial Pre-rendering (PPR)** - React 19.2 | - |
@@ -276,8 +288,11 @@ The implementation follows these key milestones (from `docs/ROADMAP.md`):
   - ✅ 404/500 错误页面 + 全局错误处理中间件
   - ✅ Error Overlay + ErrorBoundary + 错误报告接口
   - ✅ DevTools 面板 (性能指标 + HMR 状态 + 错误计数)
-- **Day 27**: 生产可用 (CLI + 错误处理) ← **下一步**
-- **Day 29**: 基础性能优化与文档
+- ✅ **Phase 8 完成** (2025-11-04): CLI 工具系统 (Day 1-2 completed)
+  - ✅ Commander.js CLI 框架 + 彩色日志系统
+  - ✅ dev/build/start 命令增强（端口检查 + 统计信息）
+  - ✅ 错误处理 + 友好提示
+- **Day 29**: 基础性能优化与文档 ← **下一步**
 - **Day 31**: SEO 优化完成（可选）
 - **Day 34**: PPR 极致性能优化 (TTFB < 50ms)
 - **Day 37**: 国际化支持，可发布
